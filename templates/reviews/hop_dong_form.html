@@ -1,0 +1,608 @@
+{% extends 'reviews/base.html' %}
+{% block title %}Lập Hợp Đồng Thuê Xe | Vietmoto{% endblock %}
+
+{% block content %}
+<style>
+.contract-customer-wrap { position: relative; }
+.contract-customer-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  max-height: 250px;
+  overflow-y: auto;
+}
+.contract-customer-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.contract-customer-item:hover { background-color: #fff7ed; }
+.contract-customer-item strong { color: #0f172a; font-size: 0.92rem; }
+.contract-customer-item small { color: #64748b; font-size: 0.8rem; }
+</style>
+
+<div class="mb-4">
+  <a href="{% url 'hop_dong_list' %}" class="text-decoration-none text-secondary fw-semibold small d-inline-flex align-items-center gap-1">
+    <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách hợp đồng
+  </a>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+    <div>
+      <h1 class="page-title text-dark fw-bold mb-1">Lập hợp đồng thuê xe</h1>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      {% if don_dat %}
+      <div class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2 fs-6 shadow-sm d-flex align-items-center gap-2">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>Chuyển từ đơn đặt: <strong>{{ don_dat.ma_don_dat }}</strong></span>
+      </div>
+      {% endif %}
+      {% if nhan_vien_truc %}
+      <div class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fs-6 shadow-sm d-flex align-items-center gap-2">
+        <i class="fa-solid fa-user-tie text-primary"></i>
+        <span>Nhân viên lập: <strong class="text-dark">{{ nhan_vien_truc.ho_ten }}</strong></span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- CỘT TRÁI (8): BIỂU MẪU LẬP HỢP ĐỒNG -->
+  <div class="col-lg-8">
+    <div class="card-custom p-4">
+      {% if form.errors or form.non_field_errors %}
+      <div class="alert alert-danger border-0 shadow-sm mb-4" style="background-color: #ffe4e6; color: #be123c; border: 1px solid #fda4af !important; border-radius: 12px;">
+        <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i><strong>Vui lòng kiểm tra lại thông tin:</strong>
+        <ul class="mb-0 mt-1 small fw-semibold">
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+          {% for field, errors in form.errors.items %}
+            {% if field != '__all__' %}
+              {% for error in errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <form method="POST" id="contractCreateForm" hx-boost="false">
+        {% csrf_token %}
+        {{ form.ma_khach_hang }}
+
+        <div class="row g-3">
+          <!-- HÀNG 1: Mã hợp đồng (3) | Số điện thoại khách hàng có list sổ xuống (9) -->
+          <div class="col-md-3">
+            <label class="form-label fw-bold text-dark small d-block mb-1">Mã hợp đồng</label>
+            {{ form.ma_hop_dong }}
+          </div>
+
+          <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label fw-bold text-dark small mb-0">
+                Số điện thoại khách hàng <span class="text-danger">*</span>
+              </label>
+              <a href="{% url 'khach_hang_create' %}" target="_blank" class="text-decoration-none small fw-bold text-nowrap" style="color: var(--brand-primary, #f44905);">
+                <i class="fa-solid fa-user-plus me-1"></i>Thêm khách mới
+              </a>
+            </div>
+            <div class="contract-customer-wrap">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-secondary" style="border-color: #cbd5e1;">
+                  <i class="fa-solid fa-phone"></i>
+                </span>
+                <input type="text"
+                       id="contractCustomerSearch"
+                       class="form-control border-start-0 text-dark fw-bold font-monospace"
+                       style="border-color: #cbd5e1;"
+                       autocomplete="off"
+                       placeholder="Nhấn để chọn hoặc nhập SĐT..."
+                       aria-expanded="false">
+              </div>
+              <div id="contractCustomerResults" class="contract-customer-results" hidden></div>
+              <small id="contractCustomerHint" class="d-block mt-1 fw-semibold" style="font-size: 0.78rem;" hidden></small>
+            </div>
+          </div>
+
+          <!-- HÀNG 2: Chọn phương tiện (7) | Phương thức cọc bảo đảm (5) -->
+          <div class="col-md-7">
+            <label class="form-label fw-bold text-dark small">
+              Chọn phương tiện (Còn trống) <span class="text-danger">*</span>
+            </label>
+            {{ form.bien_so_xe }}
+          </div>
+
+          <div class="col-md-5">
+            <label class="form-label fw-bold text-dark small">
+              Phương thức cọc bảo đảm <span class="text-danger">*</span>
+            </label>
+            {{ form.hinh_thuc_dat_coc }}
+          </div>
+
+          <!-- HÀNG 3: Đơn giá ngày niêm yết (6) | Tiền cọc quy định (6) -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small">Đơn giá ngày niêm yết (VNĐ/ngày)</label>
+            {{ form.don_gia_ap_dung }}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small">Tiền cọc quy định (VNĐ)</label>
+            {{ form.tien_coc_quy_dinh }}
+          </div>
+
+          <!-- HÀNG 4: Thời điểm nhận xe (6) | Thời điểm hẹn trả xe (6) -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small">
+              Thời điểm nhận xe (Bắt đầu) <span class="text-danger">*</span>
+            </label>
+            {{ form.ngay_bat_dau }}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small">
+              Thời điểm hẹn trả xe (Dự kiến) <span class="text-danger">*</span>
+            </label>
+            {{ form.ngay_ket_thuc_du_kien }}
+          </div>
+
+          <!-- HÀNG 5: Hình thức thanh toán (5) | Ghi chú giao xe (7) -->
+          <div class="col-md-5">
+            <label class="form-label fw-bold text-dark small">
+              Hình thức thanh toán cước &amp; cọc <span class="text-danger">*</span>
+            </label>
+            {{ form.hinh_thuc_thanh_toan }}
+          </div>
+
+          <div class="col-md-7">
+            <label class="form-label fw-bold text-dark small">Ghi chú giao xe / Yêu cầu thêm</label>
+            {{ form.ghi_chu_hop_dong }}
+          </div>
+        </div>
+
+        <!-- KHỐI TỔNG HỢP CHI PHÍ -->
+        <div class="mt-4 p-4 rounded-3 border" style="background-color: #fffaf5; border: 1.5px dashed var(--brand-primary, #f44905) !important;">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <span class="text-secondary d-block small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Thời gian thuê dự kiến:</span>
+              <span class="fs-4 fw-bold text-dark font-monospace"><span id="lbl-hd-so-ngay">0</span> ngày</span>
+              <small class="text-muted d-block mt-1 fw-medium">Đơn giá chốt: <strong id="lbl-hd-don-gia-sub" class="font-monospace">0 đ/ngày</strong></small>
+            </div>
+            <div class="col-md-6 text-md-end mt-2 mt-md-0">
+              <span class="text-secondary d-block small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Tổng cước thuê tạm tính:</span>
+              <span class="fs-2 fw-bold font-monospace" style="color: var(--brand-primary, #f44905);" id="lbl-hd-tong-cuoc">0 đ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CẢNH BÁO BLACKLIST -->
+        <div id="box-hd-blacklist-alert" class="alert bg-danger-subtle text-danger border border-danger-subtle shadow-sm mt-3 d-none align-items-center gap-2 rounded-3">
+          <i class="fa-solid fa-ban fs-4"></i>
+          <div>
+            <strong class="d-block">CẢNH BÁO TỪ CHỐI DỊCH VỤ (BLACKLIST):</strong>
+            <span id="txt-hd-blacklist-reason" class="small fw-semibold">Khách hàng nằm trong danh sách đen. Hệ thống đã khóa quyền lập hợp đồng.</span>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top" style="border-color: #e2e8f0;">
+          <a href="{% url 'hop_dong_list' %}" class="btn btn-outline-secondary px-4 fw-semibold" style="height: 38px; border-radius: 9px; border-color: #cbd5e1;">Hủy bỏ</a>
+          <button type="submit" id="btnSubmitContract" class="btn-brand px-4 shadow-sm fw-bold d-inline-flex align-items-center gap-2" style="height: 38px;">
+            <i class="fa-solid fa-file-signature"></i>
+            <span>Lập hợp đồng &amp; Sang xuất bãi</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CỘT PHẢI (4): TÓM TẮT ĐỐI SOÁT NHANH -->
+  <div class="col-lg-4">
+    <!-- 1. THÔNG TIN KHÁCH HÀNG -->
+    <div class="card-custom mb-4" style="background-color: #f8fafc;">
+      <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.92rem;">
+        <i class="fa-solid fa-id-card-clip" style="color: var(--brand-primary, #f44905);"></i>
+        Khách hàng thuê xe
+      </h5>
+      <div id="sideHdCustomerBox" class="d-flex flex-column gap-2" style="font-size: 0.88rem;">
+        <div class="text-center py-3 text-muted">
+          <i class="fa-regular fa-user fs-1 d-block mb-2 text-secondary"></i>
+          Nhấn vào ô SĐT ở cột trái để chọn khách
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. PHƯƠNG TIỆN BÀN GIAO -->
+    <div class="card-custom mb-4">
+      <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.92rem;">
+        <i class="fa-solid fa-motorcycle text-primary"></i>
+        Phương tiện bàn giao
+      </h5>
+      <div class="d-flex flex-column gap-2" style="font-size: 0.88rem;">
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Phương tiện:</span>
+          <strong class="text-dark font-monospace text-end" id="sideHdVehicle">Chưa chọn xe</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Phân loại:</span>
+          <span id="sideHdVehicleType" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Chưa xác định</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Đơn giá niêm yết:</span>
+          <strong class="text-dark font-monospace" id="sideHdDailyPrice">0 đ/ngày</strong>
+        </div>
+        <div class="d-flex justify-content-between pt-2">
+          <span class="text-secondary fw-medium">Cọc định mức xe:</span>
+          <strong class="text-success font-monospace" id="sideHdDepositBase">0 đ</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TỔNG KẾT THANH TOÁN TẠI QUẦY -->
+    <div class="card-custom" style="background-color: #fffaf5; border-color: #fed7aa !important;">
+      <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
+        <i class="fa-solid fa-receipt text-success"></i>
+        Tổng kết thu tại quầy
+      </h6>
+      <div class="d-flex flex-column gap-2" style="font-size: 0.88rem;">
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #fed7aa;">
+          <span class="text-secondary fw-medium">Cước thuê xe:</span>
+          <strong class="text-primary font-monospace" id="sideHdRentTotal">0 đ</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #fed7aa;">
+          <span class="text-secondary fw-medium">Tiền cọc thực thu:</span>
+          <span class="text-end">
+            <strong class="text-success font-monospace d-block" id="sideHdDepositActual">0 đ</strong>
+            <small id="sideHdDepositNote" class="text-muted fw-semibold" style="font-size: 0.74rem;">Giữ bản gốc CCCD</small>
+          </span>
+        </div>
+        {% if don_dat and don_dat.da_thanh_toan_coc and don_dat.tien_coc_giu_cho > 0 %}
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #fed7aa;">
+          <span class="text-secondary fw-medium">Đã cọc giữ chỗ:</span>
+          <strong class="text-info-emphasis font-monospace">- {{ don_dat.tien_coc_giu_cho|floatformat:0 }} đ</strong>
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-between pt-2 fs-6">
+          <span class="fw-bold text-dark">Tổng cần thanh toán:</span>
+          <strong class="fw-bold fs-5 font-monospace" style="color: var(--brand-primary, #f44905);" id="sideHdGrandTotal">0 đ</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ khach_hang_list_json|json_script:"contract-customer-data" }}
+{{ contract_vehicles|json_script:"contract-vehicle-data" }}
+{{ busy_intervals|json_script:"contract-busy-data" }}
+
+<script>
+(function () {
+  function initContractCreatePage() {
+    const customerEl = document.getElementById('contract-customer-data');
+    if (!customerEl || customerEl.dataset.initialized === '1') return;
+    customerEl.dataset.initialized = '1';
+
+    const customerData = JSON.parse(customerEl.textContent || '[]');
+    const vehicleData = JSON.parse(document.getElementById('contract-vehicle-data').textContent || '[]');
+    const busyIntervals = JSON.parse(document.getElementById('contract-busy-data').textContent || '[]');
+    const prebookedDeposit = Number("{{ don_dat.tien_coc_giu_cho|default:0 }}") || 0;
+
+    const search = document.getElementById('contractCustomerSearch');
+    const hidden = document.getElementById('id_ma_khach_hang');
+    const results = document.getElementById('contractCustomerResults');
+    const hint = document.getElementById('contractCustomerHint');
+    const sideCustomerBox = document.getElementById('sideHdCustomerBox');
+    const boxBlacklistAlert = document.getElementById('box-hd-blacklist-alert');
+    const txtBlacklistReason = document.getElementById('txt-hd-blacklist-reason');
+    const submitBtn = document.getElementById('btnSubmitContract');
+
+    const vehicle = document.getElementById('select-xe');
+    const depositMethod = document.getElementById('id_hinh_thuc_dat_coc');
+    const dailyPriceInput = document.getElementById('id_don_gia_ap_dung');
+    const depositInput = document.getElementById('id_tien_coc_quy_dinh');
+    const depositPolicyNote = document.getElementById('lbl-coc-policy-note');
+    const start = document.getElementById('id_ngay_bat_dau');
+    const end = document.getElementById('id_ngay_ket_thuc_du_kien');
+
+    let selectedCustomer = null;
+    const fmt = n => Number(n || 0).toLocaleString('vi-VN') + ' đ';
+
+    const norm = x => String(x == null ? '' : x)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+
+    const isVietNamCustomer = (c) => {
+      if (!c) return true;
+      const qt = norm(c.quoc_tich || 'viet nam');
+      return ['viet nam', 'vietnam', 'vn', ''].includes(qt);
+    };
+
+    const showCustomer = (c) => {
+      selectedCustomer = c;
+      hidden.value = c.ma_khach_hang;
+      search.value = c.so_dien_thoai;
+      results.hidden = true;
+      search.setAttribute('aria-expanded', 'false');
+
+      const isVN = isVietNamCustomer(c);
+      if (depositMethod) {
+        const optGiuCccd = depositMethod.querySelector('option[value="GIU_CCCD"]');
+        if (!isVN) {
+          depositMethod.value = 'TIEN_MAT';
+          if (optGiuCccd) optGiuCccd.disabled = true;
+        } else {
+          if (optGiuCccd) optGiuCccd.disabled = false;
+        }
+      }
+
+      const isBlacklist = c.muc_tin_nhiem === 'BLACKLIST';
+      const isWarning = c.muc_tin_nhiem === 'CAN_LUU_Y';
+
+      hint.hidden = false;
+      if (isBlacklist) {
+        hint.style.color = '#dc2626';
+        hint.innerHTML = `<i class="fa-solid fa-ban me-1"></i> Khách hàng thuộc danh sách Blacklist!`;
+        if (boxBlacklistAlert) {
+          boxBlacklistAlert.classList.remove('d-none');
+          boxBlacklistAlert.classList.add('d-flex');
+          txtBlacklistReason.textContent = c.ly_do_blacklist
+            ? `Lý do: ${c.ly_do_blacklist}. Hệ thống đã khóa nút lập hợp đồng.`
+            : 'Khách hàng nằm trong danh sách đen. Hệ thống đã khóa quyền lập hợp đồng.';
+        }
+        submitBtn.disabled = true;
+      } else if (isWarning) {
+        hint.style.color = '#d97706';
+        hint.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Khách cần lưu ý: ${c.ly_do_blacklist || 'Kiểm tra kỹ giấy tờ & cọc khi giao xe'}`;
+        if (boxBlacklistAlert) boxBlacklistAlert.classList.add('d-none');
+        submitBtn.disabled = false;
+      } else {
+        hint.style.color = '#16a34a';
+        hint.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Đã chọn: <strong>${c.ho_ten}</strong> (${c.quoc_tich || 'Việt Nam'})`;
+        if (boxBlacklistAlert) boxBlacklistAlert.classList.add('d-none');
+        submitBtn.disabled = false;
+      }
+
+      let badge = '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold"><i class="fa-solid fa-check me-1"></i>Uy tín tốt</span>';
+      if (isBlacklist) {
+        badge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold"><i class="fa-solid fa-ban me-1"></i>Blacklist</span>';
+      } else if (isWarning) {
+        badge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Cần lưu ý</span>';
+      }
+
+      sideCustomerBox.innerHTML = `
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Họ và tên:</span>
+          <strong class="text-dark">${c.ho_ten}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Số điện thoại:</span>
+          <strong class="text-dark font-monospace">${c.so_dien_thoai}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Quốc tịch:</span>
+          <strong class="text-primary">${c.quoc_tich || 'Việt Nam'}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">CCCD / Hộ chiếu:</span>
+          <span class="fw-semibold text-dark font-monospace">${c.so_cccd || 'Chưa cập nhật'}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom" style="border-color: #e2e8f0;">
+          <span class="text-secondary fw-medium">Giấy phép lái xe:</span>
+          <strong class="text-primary font-monospace">${c.giay_phep_lai_xe || 'Chưa cập nhật'}</strong>
+        </div>
+        <div class="d-flex justify-content-between pt-2">
+          <span class="text-secondary fw-medium">Tín nhiệm:</span>
+          ${badge}
+        </div>`;
+
+      updateContractPreview();
+    };
+
+    const renderCustomers = (showAllOnEmpty = false) => {
+      selectedCustomer = null;
+      hidden.value = '';
+      hint.hidden = true;
+      if (boxBlacklistAlert) boxBlacklistAlert.classList.add('d-none');
+      submitBtn.disabled = false;
+
+      const q = norm(search.value);
+      results.replaceChildren();
+
+      if (!q && !showAllOnEmpty) {
+        results.hidden = true;
+        search.setAttribute('aria-expanded', 'false');
+        sideCustomerBox.innerHTML = `
+          <div class="text-center py-3 text-muted">
+            <i class="fa-regular fa-user fs-1 d-block mb-2 text-secondary"></i>
+            Nhấn vào ô SĐT ở cột trái để chọn khách
+          </div>`;
+        return;
+      }
+
+      const matches = (q
+        ? customerData.filter(c =>
+            norm([c.so_dien_thoai, c.ho_ten, c.so_cccd, c.ma_khach_hang].join(' ')).includes(q)
+          )
+        : customerData
+      ).slice(0, 15);
+
+      matches.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'contract-customer-item';
+        const t = document.createElement('strong');
+        t.innerHTML = `<span class="font-monospace">${c.so_dien_thoai}</span> · ${c.ho_ten}` +
+          (c.muc_tin_nhiem === 'BLACKLIST' ? ' <span style="color:#dc2626;">[BLACKLIST]</span>' : '');
+        const s = document.createElement('small');
+        s.textContent = [c.quoc_tich || 'Việt Nam', c.ma_khach_hang].filter(Boolean).join(' · ');
+        b.append(t, s);
+        b.addEventListener('click', () => showCustomer(c));
+        results.append(b);
+      });
+
+      if (!matches.length) {
+        const d = document.createElement('div');
+        d.className = 'p-3 small text-muted';
+        d.textContent = 'Không tìm thấy khách hàng. Hãy bấm "+ Thêm khách mới" ở góc trên.';
+        results.append(d);
+      }
+      results.hidden = false;
+      search.setAttribute('aria-expanded', 'true');
+    };
+
+    search.addEventListener('input', () => renderCustomers(true));
+    search.addEventListener('click', () => { if (!hidden.value) renderCustomers(true); });
+    search.addEventListener('focus', () => { if (!hidden.value) renderCustomers(true); });
+
+    if (!window.__vmContractCreateOutsideClick) {
+      window.__vmContractCreateOutsideClick = true;
+      document.addEventListener('click', e => {
+        const resEl = document.getElementById('contractCustomerResults');
+        const srchEl = document.getElementById('contractCustomerSearch');
+        if (resEl && srchEl && !e.target.closest('.contract-customer-wrap')) {
+          resEl.hidden = true;
+          srchEl.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    function updateContractPreview() {
+      const a = start && start.value ? new Date(start.value) : null;
+      const b = end && end.value ? new Date(end.value) : null;
+      const validRange = a && b && Number.isFinite(a.getTime()) && Number.isFinite(b.getTime()) && b > a;
+
+      // Kiểm tra trùng lịch trên danh sách xe (hiển thị Biển số · Tên dòng xe)
+      if (vehicle) {
+        Array.from(vehicle.options).forEach(opt => {
+          if (!opt.value) return;
+          const vObj = vehicleData.find(x => x.bien_so_xe === opt.value);
+          const baseLabel = vObj ? `${vObj.bien_so_xe} · ${vObj.ma_dong_xe__ten_dong_xe}` : opt.value;
+          if (validRange) {
+            const conflict = busyIntervals.find(iv =>
+              iv.vehicle === opt.value &&
+              new Date(iv.start) < b &&
+              new Date(iv.end) > a
+            );
+            if (conflict) {
+              opt.textContent = `${baseLabel} (Vướng lịch ${conflict.ref})`;
+              opt.disabled = true;
+            } else {
+              opt.textContent = baseLabel;
+              opt.disabled = false;
+            }
+          } else {
+            opt.textContent = baseLabel;
+            opt.disabled = false;
+          }
+        });
+      }
+
+      const v = vehicle ? vehicleData.find(x => x.bien_so_xe === vehicle.value) : null;
+      const badgeLoai = document.getElementById('sideHdVehicleType');
+      const donGia = v ? Number(v.ma_dong_xe__don_gia_ngay || 0) : 0;
+      const cocDinhMuc = v ? Number(v.ma_dong_xe__tien_coc_dinh_muc || 0) : 0;
+
+      if (v) {
+        const tenXe = `${v.bien_so_xe} · ${v.ma_dong_xe__ten_dong_xe}`;
+        const lowerTen = tenXe.toLowerCase();
+        const isXeDien = lowerTen.includes('điện') || lowerTen.includes('vinfast') ||
+                         lowerTen.includes('feliz') || lowerTen.includes('icone') || lowerTen.includes('klara');
+        document.getElementById('sideHdVehicle').textContent = tenXe;
+        document.getElementById('sideHdDailyPrice').textContent = fmt(donGia) + '/ngày';
+        document.getElementById('sideHdDepositBase').textContent = fmt(cocDinhMuc);
+        document.getElementById('lbl-hd-don-gia-sub').textContent = fmt(donGia) + '/ngày';
+        if (dailyPriceInput) dailyPriceInput.value = donGia;
+
+        if (isXeDien) {
+          badgeLoai.className = 'badge bg-success-subtle text-success border border-success-subtle fw-bold';
+          badgeLoai.innerHTML = '<i class="fa-solid fa-bolt me-1"></i> Xe máy điện';
+        } else {
+          badgeLoai.className = 'badge bg-info-subtle text-info-emphasis border border-info-subtle fw-bold';
+          badgeLoai.innerHTML = '<i class="fa-solid fa-gas-pump me-1"></i> Xe máy xăng';
+        }
+      } else {
+        document.getElementById('sideHdVehicle').textContent = 'Chưa chọn xe';
+        document.getElementById('sideHdDailyPrice').textContent = '0 đ/ngày';
+        document.getElementById('sideHdDepositBase').textContent = '0 đ';
+        document.getElementById('lbl-hd-don-gia-sub').textContent = '0 đ/ngày';
+        if (dailyPriceInput) dailyPriceInput.value = '';
+        badgeLoai.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle';
+        badgeLoai.textContent = 'Chưa xác định';
+      }
+
+      // Tính tiền cọc thực thu theo phương thức & quốc tịch
+      const method = depositMethod ? depositMethod.value : 'GIU_CCCD';
+      const isVN = isVietNamCustomer(selectedCustomer);
+      const cocThucThu = (isVN && method === 'GIU_CCCD') ? 0 : cocDinhMuc;
+
+      if (depositInput) depositInput.value = cocThucThu;
+      if (depositPolicyNote) {
+        if (!isVN) {
+          depositPolicyNote.className = 'text-warning-emphasis d-block mt-1 fw-semibold';
+          depositPolicyNote.textContent = 'Khách nước ngoài bắt buộc đặt cọc tiền mặt/chuyển khoản.';
+        } else if (method === 'GIU_CCCD') {
+          depositPolicyNote.className = 'text-success d-block mt-1 fw-semibold';
+          depositPolicyNote.textContent = 'Miễn cọc tiền (Giữ bản gốc CCCD tại quầy).';
+        } else {
+          depositPolicyNote.className = 'text-primary d-block mt-1 fw-semibold';
+          depositPolicyNote.textContent = 'Thu tiền cọc định mức theo dòng xe (hoàn lại khi trả xe).';
+        }
+      }
+
+      let days = 0;
+      if (validRange) {
+        days = Math.max(1, Math.ceil((b - a) / 86400000));
+      }
+      document.getElementById('lbl-hd-so-ngay').textContent = days;
+
+      const tienThue = (v && days) ? donGia * days : 0;
+      const tongThuQuay = Math.max(0, tienThue + cocThucThu - prebookedDeposit);
+
+      document.getElementById('lbl-hd-tong-cuoc').textContent = fmt(tienThue);
+      document.getElementById('sideHdRentTotal').textContent = fmt(tienThue);
+      document.getElementById('sideHdDepositActual').textContent = fmt(cocThucThu);
+      document.getElementById('sideHdDepositNote').textContent =
+        (isVN && method === 'GIU_CCCD') ? 'Giữ bản gốc CCCD (0 đ)' : 'Thu tiền cọc bảo đảm';
+      document.getElementById('sideHdGrandTotal').textContent = fmt(tongThuQuay);
+    }
+
+    if (vehicle) vehicle.addEventListener('change', updateContractPreview);
+    if (depositMethod) depositMethod.addEventListener('change', updateContractPreview);
+    if (start) start.addEventListener('change', updateContractPreview);
+    if (end) end.addEventListener('change', updateContractPreview);
+
+    const preselected = customerData.find(c => c.ma_khach_hang === hidden.value);
+    if (preselected) {
+      showCustomer(preselected);
+    } else {
+      updateContractPreview();
+    }
+
+    document.getElementById('contractCreateForm').addEventListener('submit', e => {
+      if (!hidden.value) {
+        e.preventDefault();
+        search.focus();
+        hint.hidden = false;
+        hint.style.color = '#dc2626';
+        hint.textContent = 'Vui lòng chọn khách hàng từ danh sách sổ xuống.';
+      }
+    });
+  }
+
+  initContractCreatePage();
+})();
+</script>
+{% endblock %}

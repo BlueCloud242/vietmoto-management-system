@@ -1,0 +1,550 @@
+{% extends 'reviews/base.html' %}
+
+{% block title %}Nghiệm Thu Thu Hồi & Quyết Toán Cọc: {{ hop_dong.ma_hop_dong }} - Vietmoto{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'hop_dong_list' %}" class="text-decoration-none text-secondary fw-semibold small d-inline-flex align-items-center gap-1">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách hợp đồng
+    </a>
+    <h1 class="page-title text-dark fw-bold mt-2 mb-1">Nghiệm thu thu hồi & Quyết toán hoàn cọc</h1>
+</div>
+
+<div class="row g-4">
+    <!-- CỘT TRÁI (4 PHẦN): HỒ SƠ GỐC & ĐÁNH GIÁ ODO CHU KỲ BẢO DƯỠNG (BRULE-05) -->
+    <div class="col-lg-4">
+        <!-- 1. HỒ SƠ ĐỐI CHIẾU GỐC -->
+        <div class="card-custom mb-4" style="background-color: #f8fafc;">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
+                <i class="fa-solid fa-file-contract text-primary"></i>
+                Hồ sơ đối chiếu gốc
+            </h6>
+            <div class="d-flex flex-column gap-2" style="font-size: 0.88rem;">
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #e2e8f0;">
+                    <span class="text-secondary fw-medium">Hợp đồng:</span>
+                    <strong class="text-dark font-monospace">{{ hop_dong.ma_hop_dong }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #e2e8f0;">
+                    <span class="text-secondary fw-medium">Khách hàng:</span>
+                    <strong class="text-dark">{{ hop_dong.ma_khach_hang.ho_ten }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #e2e8f0;">
+                    <span class="text-secondary fw-medium">Số điện thoại:</span>
+                    <span class="text-dark font-monospace">{{ hop_dong.ma_khach_hang.so_dien_thoai }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #e2e8f0;">
+                    <span class="text-secondary fw-medium">Phương tiện:</span>
+                    <div>
+                        <strong class="text-primary font-monospace">{{ xe.bien_so_xe }}</strong>
+                        {% if is_xe_dien %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle ms-1"><i class="fa-solid fa-bolt"></i> Xe điện</span>
+                        {% else %}
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-1"><i class="fa-solid fa-gas-pump"></i> Xe xăng</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #e2e8f0;">
+                    <span class="text-secondary fw-medium">Hạn trả ban đầu:</span>
+                    <strong class="text-danger font-monospace">{{ hop_dong.ngay_ket_thuc_du_kien|date:"H:i - d/m/Y" }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-1">
+                    <span class="text-secondary fw-medium">Hình thức cọc:</span>
+                    {% if is_giu_cccd %}
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-bold">Giữ CCCD gốc (0 VNĐ cọc)</span>
+                    {% else %}
+                        <strong class="text-success font-monospace">{{ tien_coc_goc|floatformat:0 }} VNĐ (Tiền mặt/CK)</strong>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. HIỆN TRẠNG LÚC GIAO XE -->
+        <div class="card-custom mb-4">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
+                <i class="fa-solid fa-clock-rotate-left text-secondary"></i>
+                Hiện trạng lúc giao xe (Xuất bãi)
+            </h6>
+            <div class="d-flex flex-column gap-2" style="font-size: 0.88rem;">
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #f1f5f9;">
+                    <span class="text-secondary fw-medium">Chỉ số ODO xuất:</span>
+                    <strong class="text-primary fs-6 font-monospace">{{ odo_xuat }} km</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: #f1f5f9;">
+                    <span class="text-secondary fw-medium">
+                        {% if is_xe_dien %}Dung lượng pin lúc giao:{% else %}Nhiên liệu lúc giao:{% endif %}
+                    </span>
+                    <span class="badge {% if is_xe_dien %}bg-success-subtle text-success border border-success-subtle{% else %}bg-warning-subtle text-warning-emphasis border border-warning-subtle{% endif %} fw-bold">
+                        {{ xang_xuat }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between pt-1">
+                    <span class="text-secondary fw-medium">ODO tích lũy bảo dưỡng:</span>
+                    <span class="fw-semibold text-dark font-monospace">{{ xe.odo_luy_ke_bao_duong|default:0 }} / 2.000 km</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ĐÁNH GIÁ CHU KỲ BẢO DƯỠNG (BRULE-05) -->
+        <div class="card-custom" style="background-color: #fffaf5; border-color: #fed7aa !important;">
+            <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
+                <i class="fa-solid fa-wrench text-warning"></i>
+                Đánh giá ODO đợt này
+            </h6>
+            <div style="font-size: 0.86rem;">
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary fw-medium">Quãng đường chạy chuyến này:</span>
+                    <strong class="text-dark font-monospace" id="lbl-km-chay">0 km</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary fw-medium">Dự kiến ODO tích lũy mới:</span>
+                    <strong class="text-dark font-monospace" id="lbl-odo-tich-luy">{{ xe.odo_luy_ke_bao_duong|default:0 }} km</strong>
+                </div>
+                <div class="mt-2 pt-2 border-top" style="border-color: #fed7aa !important;" id="box-canh-bao-odo">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold w-100 py-2">
+                        ✓ Xe trong ngưỡng vận hành an toàn (&lt; 2.000 km)
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI (8 PHẦN): FORM NGHIỆM THU & QUYẾT TOÁN CỌC -->
+    <div class="col-lg-8">
+        <div class="card-custom p-4">
+            <!-- BỔ SUNG enctype="multipart/form-data" VÀ hx-boost="false" -->
+            <form method="POST" enctype="multipart/form-data" hx-boost="false">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <!-- Hàng 1: Mã biên bản & Kỹ thuật viên (CỐ ĐỊNH, KHÔNG DÙNG SELECT) -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small">Mã biên bản thu hồi</label>
+                        <input type="text" class="form-control bg-light text-secondary fw-bold font-monospace" style="border-color: #cbd5e1 !important;" value="{{ ma_bb_tra }}" readonly>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small">Kỹ thuật viên nhận xe</label>
+                        <div class="form-control bg-light text-dark fw-bold border d-flex align-items-center gap-2" style="border-color: #cbd5e1 !important; height: 38px;">
+                            <i class="fa-solid fa-user-gear text-primary"></i>
+                            <span>{{ ky_thuat_vien.ho_ten }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Hàng 2: ODO lúc trả & Mức năng lượng (Pin/Xăng) -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small">
+                            Số ODO trên đồng hồ lúc trả (km) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" name="so_km_odo" id="id_odo_tra" class="form-control text-dark fw-bold font-monospace" style="border-color: #cbd5e1;" value="{{ odo_xuat }}" min="{{ odo_xuat }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small">
+                            {% if is_xe_dien %}
+                                Dung lượng Pin lúc trả (%) <span class="badge bg-success-subtle text-success border border-success-subtle ms-1">Xe điện</span>
+                            {% else %}
+                                Mức vạch xăng lúc trả <span class="text-danger">*</span>
+                            {% endif %}
+                        </label>
+                        <select name="muc_vach_xang" id="id_vach_xang_tra" class="form-select text-dark fw-bold" style="border-color: #cbd5e1;">
+                            {% if is_xe_dien %}
+                                <option value="100% Pin (Đầy)" selected>100% Pin (Đầy bình)</option>
+                                <option value="75% Pin">75% Pin</option>
+                                <option value="50% Pin">50% Pin</option>
+                                <option value="Dưới 20% Pin">⚠️ Dưới 20% Pin (Cần sạc gấp)</option>
+                            {% else %}
+                                <option value="Đầy bình xăng" selected>Đầy bình xăng</option>
+                                <option value="3/4">3/4 bình xăng</option>
+                                <option value="1/2">1/2 bình xăng</option>
+                                <option value="1/4">1/4 bình xăng</option>
+                                <option value="Hết xăng">⚠️ Bình cạn (Hết xăng)</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <!-- Hàng 3: PHỤ PHÍ TRẢ TRỄ TỰ ĐỘNG & BÙ HAO HỤT NĂNG LƯỢNG -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small d-flex justify-content-between align-items-center">
+                            <span>Phụ phí trả trễ (VNĐ)</span>
+                            {% if mins_tre > 30 %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Trễ {{ mins_tre }} phút</span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Đúng hẹn</span>
+                            {% endif %}
+                        </label>
+                        <input type="number" id="id_phu_phi_tre" class="form-control bg-light text-danger fw-bold fs-6 font-monospace" style="border-color: #cbd5e1 !important;" value="{{ phu_phi_tre }}" readonly>
+                        <small class="text-secondary d-block mt-1 fw-medium" style="font-size: 0.76rem;">{{ ly_do_tre }}</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small d-flex justify-content-between align-items-center">
+                            <span>Bù hoàn nhiên liệu / Pin</span>
+                            {% if is_xe_dien %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Miễn thu phí xăng</span>
+                            {% else %}
+                                <span id="badge-xang" class="badge bg-success-subtle text-success border border-success-subtle">Đủ xăng (0đ)</span>
+                            {% endif %}
+                        </label>
+                        <input type="number" name="khau_tru_xang" id="id_khau_tru_xang" class="form-control bg-light text-danger fw-bold fs-6 font-monospace" style="border-color: #cbd5e1 !important;" value="0" readonly>
+                        <small class="text-muted d-block mt-1 fw-medium" style="font-size: 0.76rem;">
+                            {% if is_xe_dien %}
+                                Không tính phụ thu hao hụt nhiên liệu đối với xe điện.
+                            {% else %}
+                                Thiếu &lt; nửa bình: 50.000đ; Thiếu &gt; nửa bình: 100.000đ.
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    <!-- Hàng 4: BẢNG CHECKLIST KHẤU TRỪ HƯ HẠI & PHỤ KIỆN THEO QUY CHUẨN XE -->
+                    <div class="col-12 mt-3">
+                        <div class="p-3 rounded-3 border" style="background-color: #f8fafc; border-color: #cbd5e1 !important;">
+                            <label class="fw-bold text-dark small mb-2 d-flex justify-content-between align-items-center text-uppercase" style="letter-spacing: 0.5px; font-size: 0.82rem;">
+                                <span>
+                                    <i class="fa-solid fa-shield-virus text-danger me-1"></i>
+                                    Đền bù phụ kiện & Hư hại ({% if is_xe_dien %}Quy chuẩn Xe điện Fleetio{% else %}Quy chuẩn Xe xăng{% endif %}):
+                                </span>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold fs-6 font-monospace" id="lbl-tong-phu-kien">0 VNĐ</span>
+                            </label>
+
+                            <div class="row g-2" style="font-size: 0.84rem;">
+                                <!-- Cột 1: Phụ kiện lưu hành dùng chung -->
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input chk-hu-hai" type="checkbox" value="150000" id="chk_mu">
+                                        <label class="form-check-label text-dark fw-medium" for="chk_mu">Mất / hỏng mũ bảo hiểm (+150.000đ)</label>
+                                    </div>
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input chk-hu-hai" type="checkbox" value="100000" id="chk_guong">
+                                        <label class="form-check-label text-dark fw-medium" for="chk_guong">Vỡ / gãy gương chiếu hậu (+100.000đ)</label>
+                                    </div>
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input chk-hu-hai" type="checkbox" value="200000" id="chk_khoa">
+                                        <label class="form-check-label text-dark fw-medium" for="chk_khoa">Mất khóa chống trộm / khóa bánh (+200.000đ)</label>
+                                    </div>
+                                </div>
+
+                                <!-- Cột 2: Phụ kiện đặc thù xe điện vs Thân vỏ xe xăng -->
+                                <div class="col-md-6">
+                                    {% if is_xe_dien %}
+                                        <!-- Mục kiểm tra đặc thù xe điện theo Fleetio -->
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-hu-hai" type="checkbox" value="1500000" id="chk_sac">
+                                            <label class="form-check-label text-danger fw-bold" for="chk_sac">
+                                                Mất / hỏng bộ sạc xe điện (+1.500.000đ)
+                                            </label>
+                                        </div>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input chk-hu-hai" type="checkbox" value="500000" id="chk_pin">
+                                            <label class="form-check-label text-dark fw-medium" for="chk_pin">
+                                                Nứt vỡ nắp hộc pin / chốt cố định pin (+500.000đ)
+                                            </label>
+                                        </div>
+                                    {% else %}
+                                        <!-- Mục kiểm tra thân vỏ xe xăng -->
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-hu-hai" type="checkbox" value="300000" id="chk_yem">
+                                            <label class="form-check-label text-dark fw-medium" for="chk_yem">Trầy xước sâu / nứt vỡ dàn yếm xe (+300.000đ)</label>
+                                        </div>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input chk-hu-hai" type="checkbox" value="150000" id="chk_phanh">
+                                            <label class="form-check-label text-dark fw-medium" for="chk_phanh">Cong tay phanh / gãy gác chân (+150.000đ)</label>
+                                        </div>
+                                    {% endif %}
+                                    <div class="d-flex align-items-center gap-2 mt-2">
+                                        <span class="text-secondary small fw-medium">Chi phí khác:</span>
+                                        <input type="number" name="khau_tru_khac" id="id_khau_tru_khac" class="form-control form-control-sm text-dark fw-bold font-monospace" placeholder="Nhập thêm..." style="max-width: 140px; border-color: #cbd5e1;">
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="khau_tru_phu_kien" id="id_khau_tru_phu_kien" value="0">
+                        </div>
+                    </div>
+
+                    <!-- KHỐI TẢI ẢNH HIỆN TRẠNG XUẤT/NHẬN LẠI XE -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-bold text-dark small">
+                            <i class="fa-solid fa-camera text-primary me-1"></i>
+                            Hình ảnh hiện trạng xe lúc nhận lại (4 góc xe):
+                        </label>
+                        <input type="file" name="hinh_anh_xe" id="id_hinh_anh_xe" class="form-control" style="border-color: #cbd5e1;" accept="image/*" multiple>
+                        <div id="image-preview-container-tra" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+
+                    <!-- Hàng 5: Ngoại quan & Hình thức hoàn trả -->
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold text-dark small">Tình trạng xe sau thu hồi (Ngoại quan / Ghi chú)</label>
+                        <input type="text" name="tinh_trang_ngoai_quan" class="form-control" style="border-color: #cbd5e1;" placeholder="Ghi nhận hiện trạng thực tế sau kiểm tra...">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small">Hình thức hoàn trả tiền</label>
+                        <select name="hinh_thuc_hoan_coc" class="form-select text-dark fw-semibold" style="border-color: #cbd5e1;">
+                            <option value="TIEN_MAT" selected>Tiền mặt</option>
+                            <option value="CHUYEN_KHOAN">Chuyển khoản QR</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- KHỐI QUYẾT TOÁN TÀI CHÍNH TỔNG KẾT THỜI GIAN THỰC -->
+                <div class="mt-4 p-4 rounded-3 border" style="background-color: #fffaf5; border: 1.5px dashed var(--brand-primary, #f44905) !important;">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <span class="text-secondary d-block small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Tổng các khoản khấu trừ phát sinh:</span>
+                            <span class="fs-4 fw-bold text-danger font-monospace"><span id="lbl-tong-khau-tru">{{ phu_phi_tre|floatformat:0 }}</span> VNĐ</span>
+                        </div>
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                            {% if is_giu_cccd %}
+                                <span class="text-secondary d-block small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Khách cần thanh toán phụ phí:</span>
+                                <span class="fs-2 fw-bold text-danger font-monospace"><span id="lbl-tien-quyet-toan">0</span> VNĐ</span>
+                                <small class="text-success fw-bold d-block mt-1">✓ Đã đối soát CCCD để hoàn trả khách</small>
+                            {% else %}
+                                <span class="text-secondary d-block small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Tiền cọc thực tế hoàn trả khách:</span>
+                                <span class="fs-2 fw-bold text-success font-monospace"><span id="lbl-tien-quyet-toan">0</span> VNĐ</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top" style="border-color: #e2e8f0;">
+                    <a href="{% url 'hop_dong_list' %}" class="btn btn-outline-secondary px-4 fw-semibold" style="height: 38px; border-radius: 9px; border-color: #cbd5e1;">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="height: 38px; border-radius: 9px;">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        <span>Xác nhận thu hồi xe & Đóng HĐ</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JAVASCRIPT: TỰ ĐỘNG TÍNH TOÁN THEO LOẠI XE (ĐIỆN VS XĂNG) & PREVIEW ẢNH -->
+<script>
+window.initPageScripts = function () {
+    const odoXuat = {{ odo_xuat }};
+    const odoLuyKeGoc = {{ xe.odo_luy_ke_bao_duong|default:0 }};
+    const tienCocGoc = {{ tien_coc_goc }};
+    const phuPhiTre = {{ phu_phi_tre }};
+    const isGiuCCCD = {{ is_giu_cccd|yesno:"true,false" }};
+    const isXeDien = {{ is_xe_dien|yesno:"true,false" }};
+
+    const inputOdoTra = document.getElementById('id_odo_tra');
+    const selectVachXang = document.getElementById('id_vach_xang_tra');
+    const inputKhauTruXang = document.getElementById('id_khau_tru_xang');
+    const badgeXang = document.getElementById('badge-xang');
+
+    const inputKhauTruPhuKien = document.getElementById('id_khau_tru_phu_kien');
+    const inputKhauTruKhac = document.getElementById('id_khau_tru_khac');
+    const lblTongPhuKien = document.getElementById('lbl-tong-phu-kien');
+
+    const lblTongKhauTru = document.getElementById('lbl-tong-khau-tru');
+    const lblTienQuyetToan = document.getElementById('lbl-tien-quyet-toan');
+
+    // 1. Tự động tính ODO và kiểm tra chu kỳ bảo dưỡng 2.000 km
+    function capNhatOdo() {
+        if (!inputOdoTra) return;
+        const odoTra = parseInt(inputOdoTra.value) || odoXuat;
+        const kmChay = Math.max(0, odoTra - odoXuat);
+        const odoMoi = odoLuyKeGoc + kmChay;
+
+        const lblKm = document.getElementById('lbl-km-chay');
+        const lblOdo = document.getElementById('lbl-odo-tich-luy');
+        if (lblKm) lblKm.innerText = kmChay.toLocaleString('vi-VN') + ' km';
+        if (lblOdo) lblOdo.innerText = odoMoi.toLocaleString('vi-VN') + ' km';
+
+        const boxCanhBao = document.getElementById('box-canh-bao-odo');
+        if (boxCanhBao) {
+            if (odoMoi >= 2000) {
+                boxCanhBao.innerHTML = `
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold w-100 py-2">
+                        ⚠ VƯỢT NGƯỠNG BẢO DƯỠNG (>= 2.000 km) -> TỰ ĐỘNG KHÓA XE!
+                    </span>`;
+            } else {
+                boxCanhBao.innerHTML = `
+                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold w-100 py-2">
+                        ✓ Xe trong ngưỡng vận hành an toàn (&lt; 2.000 km)
+                    </span>`;
+            }
+        }
+    }
+
+    // 2. Tự động tính tiền xăng
+    function capNhatTienXang() {
+        if (!inputKhauTruXang) return;
+        if (isXeDien) {
+            inputKhauTruXang.value = 0;
+            tinhTongQuyetToan();
+            return;
+        }
+
+        const vach = selectVachXang ? selectVachXang.value : '';
+        let tienXang = 0;
+
+        if (vach === 'Đầy bình xăng') {
+            tienXang = 0;
+            if (badgeXang) {
+                badgeXang.className = 'badge bg-success-subtle text-success border border-success-subtle';
+                badgeXang.innerText = 'Đủ xăng (0đ)';
+            }
+        } else if (vach === '3/4' || vach === '1/2') {
+            tienXang = 50000;
+            if (badgeXang) {
+                badgeXang.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+                badgeXang.innerText = 'Thiếu < nửa bình (+50.000đ)';
+            }
+        } else {
+            tienXang = 100000;
+            if (badgeXang) {
+                badgeXang.className = 'badge bg-danger-subtle text-danger border border-danger-subtle';
+                badgeXang.innerText = 'Thiếu > nửa bình (+100.000đ)';
+            }
+        }
+
+        inputKhauTruXang.value = tienXang;
+        tinhTongQuyetToan();
+    }
+
+    // 3. Tự động cộng tổng tiền checklist hư hại
+    function capNhatChecklistHuHai() {
+        let tongChecklist = 0;
+        document.querySelectorAll('.chk-hu-hai:checked').forEach(chk => {
+            tongChecklist += parseInt(chk.value) || 0;
+        });
+
+        if (inputKhauTruPhuKien) inputKhauTruPhuKien.value = tongChecklist;
+        if (lblTongPhuKien) lblTongPhuKien.innerText = tongChecklist.toLocaleString('vi-VN') + ' VNĐ';
+        tinhTongQuyetToan();
+    }
+
+    // 4. Quyết toán tài chính
+    function tinhTongQuyetToan() {
+        const tienXang = parseInt(inputKhauTruXang?.value) || 0;
+        const tienPhuKien = parseInt(inputKhauTruPhuKien?.value) || 0;
+        const tienKhac = parseInt(inputKhauTruKhac?.value) || 0;
+
+        const tongKhauTru = phuPhiTre + tienXang + tienPhuKien + tienKhac;
+        if (lblTongKhauTru) lblTongKhauTru.innerText = tongKhauTru.toLocaleString('vi-VN');
+
+        if (isGiuCCCD) {
+            if (lblTienQuyetToan) lblTienQuyetToan.innerText = tongKhauTru.toLocaleString('vi-VN');
+        } else {
+            const tienHoan = Math.max(0, tienCocGoc - tongKhauTru);
+            if (lblTienQuyetToan) lblTienQuyetToan.innerText = tienHoan.toLocaleString('vi-VN');
+        }
+    }
+
+    // Gắn sự kiện (chỉ gắn 1 lần)
+    if (inputOdoTra && !inputOdoTra.dataset.bound) {
+        inputOdoTra.addEventListener('input', capNhatOdo);
+        inputOdoTra.dataset.bound = 'true';
+    }
+    if (selectVachXang && !selectVachXang.dataset.bound) {
+        selectVachXang.addEventListener('change', capNhatTienXang);
+        selectVachXang.dataset.bound = 'true';
+    }
+    document.querySelectorAll('.chk-hu-hai').forEach(chk => {
+        if (!chk.dataset.bound) {
+            chk.addEventListener('change', capNhatChecklistHuHai);
+            chk.dataset.bound = 'true';
+        }
+    });
+    if (inputKhauTruKhac && !inputKhauTruKhac.dataset.bound) {
+        inputKhauTruKhac.addEventListener('input', tinhTongQuyetToan);
+        inputKhauTruKhac.dataset.bound = 'true';
+    }
+
+    // Chạy lần đầu
+    capNhatOdo();
+    capNhatTienXang();
+    capNhatChecklistHuHai();
+
+    // ===== XỬ LÝ PREVIEW ẢNH =====
+    const fileInput = document.getElementById('id_hinh_anh_xe');
+    const previewContainer = document.getElementById('image-preview-container-tra');
+
+    if (!fileInput || !previewContainer) return;
+
+    // Chặn gắn sự kiện nhiều lần
+    if (fileInput.dataset.previewBound === 'true') return;
+    fileInput.dataset.previewBound = 'true';
+
+    let dataTransfer = new DataTransfer();
+
+    fileInput.addEventListener('change', function () {
+        // Reset hoàn toàn trước khi thêm file mới
+        dataTransfer = new DataTransfer();
+
+        for (let i = 0; i < fileInput.files.length; i++) {
+            dataTransfer.items.add(fileInput.files[i]);
+        }
+
+        fileInput.files = dataTransfer.files;
+        renderPreviews();
+    });
+
+    function renderPreviews() {
+        previewContainer.innerHTML = '';
+
+        Array.from(dataTransfer.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = `
+                    position: relative;
+                    display: inline-block;
+                    width: 85px;
+                    height: 85px;
+                    border: 1.5px solid #cbd5e1;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background-color: #f8fafc;
+                `;
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.style.cssText = `
+                    position: absolute;
+                    top: 2px;
+                    right: 4px;
+                    background-color: rgba(220, 38, 38, 0.85);
+                    color: #fff;
+                    border: none;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    line-height: 16px;
+                    text-align: center;
+                `;
+
+                deleteBtn.addEventListener('click', function () {
+                    const dt = new DataTransfer();
+                    const currentFiles = dataTransfer.files;
+                    for (let i = 0; i < currentFiles.length; i++) {
+                        if (i !== index) dt.items.add(currentFiles[i]);
+                    }
+                    dataTransfer = dt;
+                    fileInput.files = dataTransfer.files;
+                    renderPreviews();
+                });
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(deleteBtn);
+                previewContainer.appendChild(wrapper);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initPageScripts);
+} else {
+    window.initPageScripts();
+}
+</script>
+{% endblock %}

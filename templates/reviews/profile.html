@@ -1,0 +1,418 @@
+{% extends 'reviews/base.html' %}
+
+{% block title %}Hồ sơ cá nhân | Vietmoto{% endblock %}
+
+{% block content %}
+<style>
+    .profile-page-container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 0 40px;
+    }
+
+    /* 1. HEADER BANNER NỔI BẬT */
+    .profile-header-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 18px;
+        padding: 28px 32px;
+        color: #ffffff;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        border: 1.5px solid var(--border-strong);
+    }
+
+    .profile-header-banner::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(244, 73, 5, 0.28) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .banner-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .banner-user-group {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+    }
+
+    .banner-avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--brand-primary), #d93e00);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        font-weight: 800;
+        box-shadow: 0 8px 20px rgba(244, 73, 5, 0.35);
+        border: 2.5px solid rgba(255, 255, 255, 0.2);
+        flex-shrink: 0;
+    }
+
+    .banner-info-text h2 {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.4px;
+        color: #ffffff;
+    }
+
+    .banner-badges-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .badge-role {
+        background: var(--brand-primary);
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .badge-username {
+        color: #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .banner-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .btn-edit-banner {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 13.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-edit-banner:hover {
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+        color: #ffffff;
+    }
+
+    .btn-logout-banner {
+        background: rgba(239, 68, 68, 0.15);
+        color: #fca5a5;
+        border: 1.5px solid rgba(239, 68, 68, 0.35);
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 13.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-logout-banner:hover {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: #ffffff;
+    }
+
+    /* 2. BỐ CỤC BENTO 2 CỘT */
+    .profile-bento-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .bento-card-section {
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1.5px solid var(--border-color);
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .section-header-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1.5px solid #e2e8f0;
+    }
+
+    .section-header-title i {
+        color: var(--brand-primary);
+        font-size: 16px;
+    }
+
+    .info-list-vertical {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .info-grid-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .info-tile-box {
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        padding: 14px 18px;
+        border-radius: 12px;
+        transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .info-tile-box:hover {
+        border-color: var(--brand-primary);
+        background-color: #ffffff;
+    }
+
+    .tile-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .tile-value {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #0f172a;
+        word-break: break-word;
+    }
+
+    .tile-value.highlight {
+        color: var(--brand-primary);
+        font-weight: 800;
+    }
+
+    .status-active-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background-color: #dcfce7;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 12.5px;
+    }
+
+    .status-active-pill::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        background-color: #16a34a;
+        border-radius: 50%;
+    }
+
+    @media (max-width: 960px) {
+        .banner-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .profile-bento-layout, .info-grid-2col {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+
+<div class="profile-page-container">
+
+    <!-- 1. HEADER BANNER -->
+    <div class="profile-header-banner">
+        <div class="banner-inner">
+            <div class="banner-user-group">
+                <div class="banner-avatar">
+                    {% if ho_ten_hien_thi %}
+                        {{ ho_ten_hien_thi|slice:":1"|upper }}
+                    {% else %}
+                        {{ user.username|slice:":1"|upper }}
+                    {% endif %}
+                </div>
+                <div class="banner-info-text">
+                    <h2>{{ ho_ten_hien_thi|default:user.username }}</h2>
+                    <div class="banner-badges-row">
+                        <span class="badge-role">
+                            {% if nhan_vien_info %}
+                                {{ nhan_vien_info.get_vai_tro_display }}
+                            {% elif user.is_superuser %}
+                                Quản trị viên
+                            {% else %}
+                                Nhân viên
+                            {% endif %}
+                        </span>
+                        <span class="badge-username font-monospace"><i class="fa-solid fa-at me-1"></i>{{ user.username }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NÚT THAO TÁC HEADER -->
+            <div class="banner-actions">
+                {% if perms_vm.can_manage_staff %}
+                    <a href="/admin/reviews/nhanvien/" class="btn-edit-banner" hx-boost="false">
+                        <i class="fa-solid fa-users-gear"></i> Quản lý nhân sự
+                    </a>
+                {% endif %}
+
+                <form action="{% url 'logout' %}" method="post" class="m-0" hx-boost="false">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout-banner">
+                        <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. BENTO 2 CỘT -->
+    <div class="profile-bento-layout">
+
+        <!-- CỘT TRÁI: ĐỊNH DANH HỆ THỐNG -->
+        <div class="bento-card-section">
+            <div class="section-header-title">
+                <i class="fa-solid fa-id-card"></i> Định danh hệ thống
+            </div>
+
+            <div class="info-list-vertical">
+                <div class="info-tile-box">
+                    <div class="tile-label">Mã nhân viên</div>
+                    <div class="tile-value font-monospace">
+                        {{ nhan_vien_info.ma_nhan_vien|default:"Chưa gán mã NV" }}
+                    </div>
+                </div>
+
+                <div class="info-tile-box">
+                    <div class="tile-label">Trạng thái công tác</div>
+                    <div class="tile-value">
+                        {% if nhan_vien_info and nhan_vien_info.trang_thai != 'DANG_LAM_VIEC' %}
+                            <span class="badge badge-pastel-neutral px-2 py-1">{{ nhan_vien_info.get_trang_thai_display }}</span>
+                        {% else %}
+                            <span class="status-active-pill">Đang làm việc</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="info-tile-box">
+                    <div class="tile-label">Tài khoản truy cập</div>
+                    <div class="tile-value font-monospace">{{ user.username }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: CHI TIẾT CÔNG VIỆC & BẢO MẬT -->
+        <div class="d-flex flex-column gap-4">
+
+            <div class="bento-card-section">
+                <div class="section-header-title">
+                    <i class="fa-solid fa-briefcase"></i> Thông tin công tác & Chi nhánh
+                </div>
+
+                <div class="info-grid-2col">
+                    <div class="info-tile-box">
+                        <div class="tile-label">Chức danh / Vai trò</div>
+                        <div class="tile-value highlight">
+                            {% if nhan_vien_info %}
+                                {{ nhan_vien_info.get_vai_tro_display|upper }}
+                            {% elif user.is_superuser %}
+                                QUẢN TRỊ VIÊN (ADMIN)
+                            {% else %}
+                                NHÂN VIÊN VẬN HÀNH
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="info-tile-box">
+                        <div class="tile-label">Chi nhánh thao tác</div>
+                        <div class="tile-value">Vietmoto · Đà Nẵng</div>
+                    </div>
+
+                    <div class="info-tile-box">
+                        <div class="tile-label">Số điện thoại liên hệ</div>
+                        <div class="tile-value font-monospace">
+                            {{ nhan_vien_info.so_dien_thoai|default:"Chưa cập nhật" }}
+                        </div>
+                    </div>
+
+                    <div class="info-tile-box">
+                        <div class="tile-label">Địa chỉ Email</div>
+                        <div class="tile-value">
+                            {{ user.email|default:"Chưa cập nhật" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bento-card-section">
+                <div class="section-header-title">
+                    <i class="fa-solid fa-shield-halved"></i> Bảo mật & Nhật ký hệ thống
+                </div>
+
+                <div class="info-grid-2col">
+                    <div class="info-tile-box">
+                        <div class="tile-label">Số CCCD / CMND</div>
+                        <div class="tile-value font-monospace">
+                            {{ nhan_vien_info.so_cccd|default:"Chưa cập nhật" }}
+                        </div>
+                    </div>
+
+                    <div class="info-tile-box">
+                        <div class="tile-label">Ngày tạo tài khoản</div>
+                        <div class="tile-value font-monospace">
+                            {{ user.date_joined|date:"d/m/Y" }}
+                        </div>
+                    </div>
+
+                    <div class="info-tile-box" style="grid-column: span 2;">
+                        <div class="tile-label">Thời gian đăng nhập gần nhất</div>
+                        <div class="tile-value font-monospace">
+                            <i class="fa-solid fa-clock me-1" style="color: var(--brand-primary);"></i>
+                            {{ user.last_login|date:"d/m/Y - H:i:s"|default:"Lần đầu đăng nhập" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
