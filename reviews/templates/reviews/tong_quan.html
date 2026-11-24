@@ -1,0 +1,451 @@
+{% extends "reviews/base.html" %}
+{% block title %}Tổng quan vận hành | Vietmoto{% endblock %}
+{% block breadcrumb %}Tổng quan{% endblock %}
+
+{% block content %}
+<style>
+    .vm-dashboard {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #0f172a;
+    }
+
+    /* PANEL VÀ CARD VIỀN SẮC NÉT CHUẨN VIETMOTO */
+    .vm-dashboard .card-panel {
+        background: #ffffff;
+        border: 1.5px solid var(--border-color, #cbd5e1);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+        margin-bottom: 20px;
+    }
+
+    /* KPI GRID & CARDS */
+    .vm-dashboard .kpis-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+    .vm-dashboard .kpi-card {
+        background: #ffffff;
+        border: 1.5px solid var(--border-color, #cbd5e1);
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 122px;
+        text-decoration: none;
+        color: inherit;
+    }
+    .vm-dashboard .kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--brand-primary, #f44905);
+        box-shadow: 0 6px 16px rgba(244, 73, 5, 0.12);
+        color: inherit;
+    }
+    .vm-dashboard .kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .vm-dashboard .kpi-top small {
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .vm-dashboard .kpi-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff2e8;
+        color: var(--brand-primary, #f44905);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .vm-dashboard .kpi-icon.green { background: #dcfce7; color: #16a34a; }
+    .vm-dashboard .kpi-icon.blue  { background: #e0f2fe; color: #0284c7; }
+    .vm-dashboard .kpi-icon.red   { background: #ffe4e6; color: #be123c; }
+
+    .vm-dashboard .kpi-number {
+        font-size: 1.85rem;
+        line-height: 1.2;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 6px 0 2px;
+    }
+    .vm-dashboard .kpi-bottom {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* CHIA CỘT MAIN GRID */
+    .vm-dashboard .dashboard-main-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 20px;
+        align-items: stretch;
+    }
+    .vm-dashboard .btn-eye-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 32px;
+        padding: 0 11px;
+        border-radius: 8px;
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.18s ease;
+    }
+    .vm-dashboard .btn-eye-action:hover {
+        background-color: var(--brand-primary, #f44905);
+        color: #ffffff;
+        border-color: var(--brand-primary, #f44905);
+        transform: translateY(-1px);
+    }
+    .vm-dashboard .stat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1.5px solid #e2e8f0;
+        text-decoration: none;
+        transition: background-color 0.15s ease;
+    }
+    .vm-dashboard .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .vm-dashboard .stat-row:hover .stat-link { color: var(--brand-primary, #f44905); }
+    .vm-dashboard .stat-link {
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.87rem;
+        transition: color 0.15s ease;
+    }
+
+    /* KHỐI TÀI CHÍNH HÔM NAY */
+    .vm-finance-box {
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 11px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-decoration: none;
+        color: inherit;
+        transition: border-color 0.15s ease;
+    }
+    .vm-finance-box:hover {
+        border-color: var(--brand-primary, #f44905);
+        color: inherit;
+    }
+    .vm-quick-btn {
+        border-radius: 9px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        padding: 9px 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    @media(max-width: 1100px) {
+        .vm-dashboard .kpis-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width: 900px) {
+        .vm-dashboard .dashboard-main-grid { grid-template-columns: 1fr; }
+    }
+    @media(max-width: 550px) {
+        .vm-dashboard .kpis-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="vm-dashboard">
+    <!-- TIÊU ĐỀ + NÚT TẠO NHANH -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="page-title text-dark fw-bold mb-1">TỔNG QUAN VẬN HÀNH</h1>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if perms_vm.can_manage_bookings %}
+            <a href="{% url 'booking_create' %}" class="btn btn-outline-dark vm-quick-btn shadow-sm" style="border-color: #cbd5e1; background: #ffffff;">
+                <i class="fa-solid fa-calendar-plus text-primary"></i>
+                <span>Tạo đơn đặt trước</span>
+            </a>
+            {% endif %}
+            {% if perms_vm.can_manage_contracts %}
+            <a href="{% url 'hop_dong_create' %}" class="btn-brand shadow-sm vm-quick-btn">
+                <i class="fa-solid fa-file-contract"></i>
+                <span>Lập hợp đồng</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 4 KPI CHÍNH -->
+    <section class="kpis-grid" aria-label="Tình trạng phương tiện">
+        <a href="{% url 'vehicle_list' %}" class="kpi-card">
+            <div class="kpi-top">
+                <small>Tổng đội xe kinh doanh</small>
+                <span class="kpi-icon"><i class="fa-solid fa-motorcycle"></i></span>
+            </div>
+            <div class="kpi-number font-monospace">{{ tong_quan.tong_xe|default:0 }}</div>
+            <div class="kpi-bottom">Không tính xe ngưng hoạt động</div>
+        </a>
+
+        <a href="{% url 'vehicle_list' %}?status=CON_TRONG" class="kpi-card">
+            <div class="kpi-top">
+                <small>Xe còn trống tại bãi</small>
+                <span class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></span>
+            </div>
+            <div class="kpi-number text-success font-monospace">{{ tong_quan.xe_con_trong|default:0 }}</div>
+            <div class="kpi-bottom text-success fw-semibold">Sẵn sàng lập hợp đồng giao ngay</div>
+        </a>
+
+        <a href="{% url 'vehicle_list' %}?status=DANG_THUE" class="kpi-card">
+            <div class="kpi-top">
+                <small>Xe đang cho thuê</small>
+                <span class="kpi-icon blue"><i class="fa-solid fa-key"></i></span>
+            </div>
+            <div class="kpi-number text-primary font-monospace">{{ tong_quan.xe_dang_thue|default:0 }}</div>
+            <div class="kpi-bottom">Đang lưu thông ngoài bãi</div>
+        </a>
+
+        <a href="{% url 'hop_dong_list' %}?trang_thai=QUA_HAN" class="kpi-card">
+            <div class="kpi-top">
+                <small>HĐ Quá hạn trả</small>
+                <span class="kpi-icon red"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            </div>
+            <div class="kpi-number text-danger font-monospace">{{ tong_quan.hop_dong_qua_han|default:0 }}</div>
+            <div class="kpi-bottom text-danger fw-bold">Cần liên hệ thu hồi xe ngay</div>
+        </a>
+    </section>
+
+    <div class="dashboard-main-grid">
+        <!-- CÔNG VIỆC CẦN XỬ LÝ (PHÂN TRANG MƯỢT Y HỆT QUẢN LÝ XE) -->
+        <section id="todo-card-wrapper" hx-boost="false" class="card-panel mb-0 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="fs-6 fw-bold text-dark mb-0 text-uppercase" style="letter-spacing: 0.4px;">
+                        <i class="fa-solid fa-bell me-2" style="color: var(--brand-primary, #f44905);"></i>Công việc cần xử lý
+                        {% if cong_viec_page.paginator.count %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-2 font-monospace">{{ cong_viec_page.paginator.count }}</span>
+                        {% endif %}
+                    </h2>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.76rem;">
+                        Ưu tiên vận hành
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="py-2.5 px-3 text-center" style="width: 135px;">MÃ / NHÃN</th>
+                                <th class="py-2.5 px-3">NỘI DUNG CẦN XỬ LÝ</th>
+                                <th class="py-2.5 px-3 text-center" style="width: 95px;">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cong_viec_page %}
+                            <tr>
+                                <td class="px-3 py-2.5 text-center">
+                                    <span class="fw-bold text-dark font-monospace d-block" style="font-size: 0.9rem;">{{ item.ma }}</span>
+                                    {% if item.nhan %}
+                                        <span class="badge {{ item.badge_class }} border mt-1" style="font-size: 0.68rem;">{{ item.nhan }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2.5">
+                                    <div class="fw-bold text-dark" style="font-size: 0.87rem;">{{ item.noi_dung }}</div>
+                                    {% if item.ghi_chu %}
+                                        <small class="text-secondary d-block mt-0.5 fw-medium">{{ item.ghi_chu }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <a href="{{ item.url|default:'#' }}" class="btn-eye-action shadow-2xs" title="Xử lý ngay">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Xử lý</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-5 text-secondary fw-semibold">
+                                    <i class="fa-regular fa-circle-check fs-2 mb-2 d-block text-success"></i>
+                                    Hiện chưa có công việc ưu tiên nào cần xử lý.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- THANH PHÂN TRANG GIỐNG HỆT TRANG QUẢN LÝ XE -->
+            {% if cong_viec_page.paginator.num_pages > 1 %}
+            <div class="d-flex justify-content-between align-items-center pt-3 px-1 bg-white flex-wrap gap-2">
+                <div class="small text-secondary fw-semibold">
+                    Hiển thị <strong>{{ cong_viec_page.start_index }}–{{ cong_viec_page.end_index }}</strong> trên tổng số <strong>{{ cong_viec_page.paginator.count }}</strong> công việc
+                </div>
+                <nav aria-label="Phân trang công việc">
+                    <ul class="pagination mb-0">
+                        <li class="page-item {% if not cong_viec_page.has_previous %}disabled{% endif %}">
+                            <a class="page-link fw-bold page-ajax"
+                               href="{% if cong_viec_page.has_previous %}?page={{ cong_viec_page.previous_page_number }}{% else %}#{% endif %}">&laquo;</a>
+                        </li>
+
+                        {% for num in cong_viec_page.paginator.page_range %}
+                            <li class="page-item {% if cong_viec_page.number == num %}active{% endif %}">
+                                <a class="page-link fw-bold page-ajax" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endfor %}
+
+                        <li class="page-item {% if not cong_viec_page.has_next %}disabled{% endif %}">
+                            <a class="page-link fw-bold page-ajax"
+                               href="{% if cong_viec_page.has_next %}?page={{ cong_viec_page.next_page_number }}{% else %}#{% endif %}">&raquo;</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- CỘT PHẢI: HOẠT ĐỘNG VẬN HÀNH & TÀI CHÍNH TRONG NGÀY -->
+        <div class="d-flex flex-column gap-3">
+            <section class="card-panel mb-0">
+                <h2 class="fs-6 fw-bold text-dark mb-2 text-uppercase" style="letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-list-check me-2 text-primary"></i>Hoạt động vận hành
+                </h2>
+
+                <a href="{% url 'booking_list' %}?time=upcoming_24h" class="stat-row">
+                    <span class="stat-link">Đơn đặt giữ chỗ sắp tới (24h)</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 fs-6 fw-bold font-monospace">{{ tong_quan.don_giu_cho_24h|default:0 }}</span>
+                </a>
+                <a href="{% url 'hop_dong_list' %}?trang_thai=CHO_BAN_GIAO" class="stat-row">
+                    <span class="stat-link">Hợp đồng chờ xuất bãi giao xe</span>
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-1.5 fs-6 fw-bold font-monospace">{{ tong_quan.giao_hom_nay|default:0 }}</span>
+                </a>
+                <a href="{% url 'hop_dong_list' %}?trang_thai=SAP_HET_HAN" class="stat-row">
+                    <span class="stat-link">Hợp đồng sắp hết hạn trả (24h)</span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1.5 fs-6 fw-bold font-monospace">{{ tong_quan.hop_dong_sap_het_han|default:0 }}</span>
+                </a>
+                <a href="{% url 'vehicle_list' %}?status=CHO_VE_SINH" class="stat-row">
+                    <span class="stat-link">Xe chờ rửa xe / sạc pin tại bãi</span>
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-3 py-1.5 fs-6 fw-bold font-monospace">{{ tong_quan.xe_cho_ve_sinh|default:0 }}</span>
+                </a>
+                <a href="{% url 'vehicle_list' %}?tab=maintenance" class="stat-row">
+                    <span class="stat-link">Bảo dưỡng đang xử lý tại xưởng</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 fs-6 fw-bold font-monospace">{{ tong_quan.bao_duong_dang_xu_ly|default:0 }}</span>
+                </a>
+            </section>
+
+            <!-- TÀI CHÍNH & HIỆU SUẤT TRONG NGÀY -->
+            <section class="card-panel mb-0 flex-grow-1 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="fs-6 fw-bold text-dark mb-0 text-uppercase" style="letter-spacing: 0.5px;">
+                            <i class="fa-solid fa-chart-line me-2 text-success"></i>Tài chính & Hiệu suất
+                        </h2>
+                        {% if perms_vm.can_view_reports %}
+                        <a href="{% url 'bao_cao' %}" class="small fw-bold text-decoration-none" style="color: var(--brand-primary, #f44905);">
+                            Báo cáo chi tiết <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{% url 'bao_cao' %}" class="vm-finance-box">
+                            <div>
+                                <span class="text-secondary d-block small fw-semibold">Doanh thu thực thu hôm nay</span>
+                                <strong class="text-success fs-5 fw-extrabold font-monospace">{{ tong_quan.doanh_thu_hom_nay_text|default:"0" }} đ</strong>
+                            </div>
+                            <span class="kpi-icon green"><i class="fa-solid fa-coins"></i></span>
+                        </a>
+
+                        <a href="{% url 'hop_dong_list' %}" class="vm-finance-box">
+                            <div>
+                                <span class="text-secondary d-block small fw-semibold">Quỹ tiền cọc khách đang giữ</span>
+                                <strong class="text-primary fs-5 fw-extrabold font-monospace">{{ tong_quan.tien_coc_dang_giu_text|default:"0" }} đ</strong>
+                            </div>
+                            <span class="kpi-icon blue"><i class="fa-solid fa-vault"></i></span>
+                        </a>
+
+                        <a href="{% url 'vehicle_list' %}" class="vm-finance-box">
+                            <div>
+                                <span class="text-secondary d-block small fw-semibold">Tỷ suất khai thác đội xe</span>
+                                <strong class="text-dark fs-5 fw-extrabold font-monospace">{{ tong_quan.ty_le_khai_thac|default:0 }}%</strong>
+                            </div>
+                            <span class="kpi-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    let abortCtrl = null;
+
+    function loadTodoPage(url, pushHistory = true) {
+        const wrapper = document.getElementById('todo-card-wrapper');
+        if (!wrapper || !url || url === '#') return;
+
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = new AbortController();
+
+        const lockedHeight = wrapper.offsetHeight;
+        wrapper.style.minHeight = lockedHeight + 'px';
+        wrapper.style.opacity = '0.8';
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: abortCtrl.signal
+        })
+        .then(res => res.text())
+        .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newWrapper = doc.getElementById('todo-card-wrapper');
+            if (newWrapper) {
+                wrapper.innerHTML = newWrapper.innerHTML;
+            }
+            wrapper.style.opacity = '1';
+            requestAnimationFrame(() => { wrapper.style.minHeight = ''; });
+            if (pushHistory) window.history.pushState({}, '', url);
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            wrapper.style.opacity = '1';
+            wrapper.style.minHeight = '';
+        });
+    }
+
+    if (!window.__vmDashboardPaginateBound) {
+        window.__vmDashboardPaginateBound = true;
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('#todo-card-wrapper a.page-ajax');
+            if (!link) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (link.closest('.page-item.disabled') || link.closest('.page-item.active')) return;
+            loadTodoPage(link.getAttribute('href'));
+        });
+    }
+})();
+</script>
+{% endblock %}

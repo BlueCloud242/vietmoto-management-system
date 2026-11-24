@@ -1,0 +1,371 @@
+<style>
+    .vehicle-detail-identity .badge { padding: 4px 10px !important; font-size: 0.72rem !important; font-weight: 700 !important; border-radius: 8px !important; text-transform: uppercase; }
+    .vehicle-detail-modal { width: min(860px, calc(100vw - 24px)); max-width: 860px; border-radius: 16px; border: none; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35); overflow: hidden; background: #ffffff; display: flex; flex-direction: column; max-height: 92vh; }
+    .vehicle-detail-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-shrink: 0; }
+    .vehicle-detail-identity { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .vehicle-detail-kicker { font-size: 0.74rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.8px; text-transform: uppercase; }
+    .vehicle-detail-header h2 { margin: 2px 0 0; font-size: 1.25rem; font-weight: 800; color: #fff; display: flex; align-items: center; }
+    .vehicle-detail-header h2 #detail_bien_so { color: var(--brand-primary, #f44905); margin-left: 8px; }
+    .vehicle-detail-subtitle { color: #cbd5e1; font-size: 0.84rem; margin-top: 2px; font-weight: 600; }
+    .vehicle-detail-close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #cbd5e1; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; }
+    .vehicle-detail-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .vehicle-detail-form { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .vehicle-detail-scroll-body { flex: 1; overflow-y: auto; }
+    .vehicle-360-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px 24px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; }
+    .vehicle-360-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; }
+    .vehicle-360-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .vehicle-360-val { font-size: 0.95rem; font-weight: 800; margin-top: 2px; }
+    .vehicle-detail-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 18px 24px 12px; }
+    .vehicle-detail-section h3 { font-size: 0.86rem; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; color: #0f172a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .vehicle-detail-section h3 i { color: var(--brand-primary, #f44905); }
+    .vehicle-detail-section .form-field { margin-bottom: 11px; }
+    .vehicle-detail-section label { display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 5px; }
+    .vehicle-detail-section .form-control,
+    .vehicle-detail-section .form-select {
+        height: 38px;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 9px;
+        padding: 6px 11px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #0f172a;
+        background-color: #f8fafc;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    /* ĐỒNG BỘ VIỀN CAM CHO TẤT CẢ CÁC Ô KHI BẬT CHẾ ĐỘ CHỈNH SỬA */
+    .vehicle-detail-form.is-editing .vehicle-detail-section .form-control,
+    .vehicle-detail-form.is-editing .vehicle-detail-section .form-select:not(:disabled) {
+        background-color: #ffffff !important;
+        border-color: var(--brand-primary, #f44905) !important;
+        box-shadow: 0 0 0 3px rgba(244, 73, 5, 0.12) !important;
+    }
+    .vehicle-detail-prices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .vm-detail-photo { padding: 4px 24px 18px; }
+    .vm-detail-photo h3 { font-size: 0.86rem; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; color: #0f172a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .vm-detail-photo h3 i { color: var(--brand-primary, #f44905); }
+    .vm-detail-photo-card { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 12px 16px; }
+    .vm-detail-photo-left { display: flex; align-items: center; gap: 16px; }
+    .vm-detail-photo-thumb { width: 108px; height: 74px; border-radius: 10px; overflow: hidden; background: #ffffff; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vm-detail-photo-thumb img { width: 100%; height: 100%; object-fit: contain; }
+    .vehicle-detail-footer { display: flex; align-items: center; justify-content: space-between; padding: 13px 24px; background: #f8fafc; border-top: 1.5px solid #e2e8f0; flex-shrink: 0; gap: 10px; }
+    .vehicle-detail-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    @media (max-width: 720px) {
+        .vehicle-detail-columns { grid-template-columns: 1fr; }
+        .vehicle-360-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+
+<div id="detailModal" class="modalback-pro" onclick="if(event.target === this) closeModal('detailModal')">
+  <div class="modal-content-box vehicle-detail-modal">
+    <div class="vehicle-detail-header">
+      <div>
+        <div class="vehicle-detail-identity">
+          <span class="vehicle-detail-kicker">Hồ sơ phương tiện 360°</span>
+          <span id="detail_trang_thai" class="badge"></span>
+          <span id="detail_bh_badge" class="badge" style="display:none;"></span>
+        </div>
+        <h2>Biển số xe:<span id="detail_bien_so" class="font-monospace"></span></h2>
+        <div id="detail_dong_xe" class="vehicle-detail-subtitle"></div>
+      </div>
+      <button type="button" class="vehicle-detail-close" onclick="closeModal('detailModal')" aria-label="Đóng">&times;</button>
+    </div>
+
+    <form id="vehicleDetailForm" method="POST" enctype="multipart/form-data" class="vehicle-detail-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_pricing">
+      <input type="hidden" name="ma_dong_xe" id="detail_input_madongxe">
+      <input type="hidden" name="bien_so_xe" id="detail_input_bienso_hidden">
+
+      <div class="vehicle-detail-scroll-body">
+        <!-- DẢI KPI HIỆU QUẢ KHAI THÁC -->
+        {% if perms_vm.can_view_profit %}
+        <div class="vehicle-360-strip">
+          <div class="vehicle-360-box">
+            <div class="vehicle-360-label">Lượt cho thuê</div>
+            <div class="vehicle-360-val text-dark font-monospace"><span id="detail_stat_trips">0</span> chuyến</div>
+          </div>
+          <div class="vehicle-360-box">
+            <div class="vehicle-360-label">Tổng doanh thu</div>
+            <div class="vehicle-360-val text-primary font-monospace" id="detail_stat_revenue">0 đ</div>
+          </div>
+          <div class="vehicle-360-box">
+            <div class="vehicle-360-label">Chi phí bảo dưỡng</div>
+            <div class="vehicle-360-val text-danger font-monospace" id="detail_stat_maint">0 đ</div>
+          </div>
+          <div class="vehicle-360-box">
+            <div class="vehicle-360-label">Lợi nhuận gộp</div>
+            <div class="vehicle-360-val text-success font-monospace" id="detail_stat_profit">0 đ</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="vehicle-detail-columns">
+          <!-- CỘT 1: VẬN HÀNH (4 HÀNG CÂN ĐỐI) -->
+          <section class="vehicle-detail-section">
+            <h3><i class="fa-solid fa-gauge-high"></i> Vận hành & Bảng giá</h3>
+            <div class="form-field">
+              <label for="detail_select_status">Trạng thái hoạt động</label>
+              <select id="detail_select_status" name="trang_thai_xe" class="form-select" disabled>
+                <option value="CON_TRONG">Còn trống (Sẵn sàng cho thuê)</option>
+                <option value="CHO_VE_SINH">Chờ rửa xe / Sạc pin</option>
+                <option value="NGUNG_HOAT_DONG">Ngưng hoạt động (Tạm khóa)</option>
+                <option value="DANG_THUE" disabled>Đang thuê (Khóa tự động theo HĐ)</option>
+                <option value="BAO_DUONG" disabled>Đang bảo dưỡng (Khóa tự động theo phiếu BD)</option>
+              </select>
+              <small id="detail_status_hint" class="text-secondary d-block mt-1" style="font-size: 0.74rem;"></small>
+            </div>
+
+            <div class="vehicle-detail-prices">
+              <div class="form-field">
+                <label for="detail_input_odo">ODO hiện tại (km)</label>
+                <input type="number" id="detail_input_odo" name="odo_hien_tai" min="0" step="1" class="form-control font-monospace" readonly required>
+              </div>
+              <div class="form-field">
+                <label for="detail_input_fuel">Xăng / Pin (%)</label>
+                <input type="number" id="detail_input_fuel" name="muc_nhien_lieu_pin" min="0" max="100" step="1" class="form-control font-monospace" readonly>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="detail_input_note">Ghi chú tình trạng thực tế</label>
+              <input type="text" id="detail_input_note" name="ghi_chu_tinh_trang" placeholder="Chưa có ghi chú" class="form-control" readonly>
+            </div>
+
+            <div class="vehicle-detail-prices">
+              <div class="form-field mb-0">
+                <label for="detail_input_gia">Giá thuê / ngày (VNĐ)</label>
+                <input type="number" name="don_gia_ngay" id="detail_input_gia" min="0" step="1000" class="form-control font-monospace" readonly required>
+              </div>
+              <div class="form-field mb-0">
+                <label for="detail_input_coc">Tiền cọc định mức (VNĐ)</label>
+                <input type="number" name="tien_coc" id="detail_input_coc" min="0" step="50000" class="form-control font-monospace" readonly required>
+              </div>
+            </div>
+          </section>
+
+          <!-- CỘT 2: HỒ SƠ XE & TÀI SẢN (4 HÀNG THẲNG HÀNG VỚI CỘT 1) -->
+          <section class="vehicle-detail-section">
+            <h3><i class="fa-solid fa-folder-open"></i> Hồ sơ xe & Tài sản</h3>
+            <div class="vehicle-detail-prices">
+              <div class="form-field">
+                <label for="detail_input_namsx">Năm sản xuất</label>
+                <input type="number" id="detail_input_namsx" name="nam_san_xuat" min="1900" max="2100" placeholder="Chưa cập nhật" class="form-control font-monospace" readonly>
+              </div>
+              <div class="form-field">
+                <label for="detail_input_hanbh">Hạn bảo hiểm TNDS</label>
+                <input type="date" id="detail_input_hanbh" name="han_bao_hiem" class="form-control font-monospace" readonly>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="detail_input_sokhung">Số khung</label>
+              <input type="text" id="detail_input_sokhung" name="so_khung" placeholder="Chưa cập nhật" class="form-control font-monospace text-uppercase" readonly>
+            </div>
+
+            <div class="form-field">
+              <label for="detail_input_somay">Số máy</label>
+              <input type="text" id="detail_input_somay" name="so_may" placeholder="Chưa cập nhật" class="form-control font-monospace text-uppercase" readonly>
+            </div>
+
+            <div class="vehicle-detail-prices">
+              <div class="form-field mb-0">
+                <label for="detail_input_ngaymua">Ngày mua / Nhập bãi</label>
+                <input type="date" id="detail_input_ngaymua" name="ngay_mua" class="form-control font-monospace" readonly>
+              </div>
+              <div class="form-field mb-0">
+                <label for="detail_input_giatrimua">Giá trị mua (VNĐ)</label>
+                <input type="number" id="detail_input_giatrimua" name="gia_tri_mua" min="0" step="1000" placeholder="Chưa cập nhật" class="form-control font-monospace" readonly>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- HÌNH ẢNH DÒNG XE & CHU KỲ BẢO DƯỠNG -->
+        <section class="vm-detail-photo">
+          <h3><i class="fa-solid fa-image"></i> Hình ảnh dòng xe & Chu kỳ bảo dưỡng</h3>
+          <div class="vm-detail-photo-card">
+            <div class="vm-detail-photo-left">
+              <div class="vm-detail-photo-thumb">
+                <img id="detail_photo_preview" alt="Ảnh dòng xe" hidden>
+                <div id="detail_photo_empty" class="text-secondary small fw-bold">Chưa có ảnh</div>
+              </div>
+              <div>
+                <div id="detail_photo_edit" style="display: none;">
+                  <input id="detail_photo_input" type="file" name="hinh_anh" accept="image/*" onchange="previewVehiclePhoto(this,'detail_photo_preview','detail_photo_empty')" style="display:none;">
+                  <label for="detail_photo_input" class="btn btn-sm btn-outline-primary fw-bold rounded-2 px-3 py-1 mb-1">
+                    <i class="fa-solid fa-upload me-1"></i> Thay ảnh dòng xe
+                  </label>
+                </div>
+                <p class="text-secondary small mb-1 fw-medium">Định dạng: PNG, JPG, JPEG (Tối đa 8 MB).</p>
+                <small class="text-warning-emphasis d-block fw-semibold" style="font-size: 0.75rem;">
+                  <i class="fa-solid fa-circle-info me-1"></i>Giá thuê, tiền cọc và ảnh áp dụng chung cho toàn bộ dòng xe này.
+                </small>
+              </div>
+            </div>
+
+            <div class="px-3 py-2 rounded-3 bg-white border text-end" style="border-color: #cbd5e1 !important;">
+              <div class="text-secondary fw-bold" style="font-size: 0.72rem; text-transform: uppercase;">ODO lũy kế bảo dưỡng</div>
+              <div class="fw-extrabold text-dark font-monospace fs-6 mt-0.5">
+                <span id="detail_odo_luy_ke">0</span> / 2.000 km
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="vehicle-detail-footer">
+        <span id="detail_edit_mode_badge" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 fw-bold" style="display:none;">
+          <i class="fa-solid fa-pen me-1"></i> Đang bật chế độ chỉnh sửa
+        </span>
+        <div class="vehicle-detail-actions">
+          {% if perms_vm.can_manage_fleet %}
+          <button type="button" id="btn_chinh_sua" class="btn fw-bold px-3" style="border-radius: 9px; height: 38px; border: 1px solid #7dd3fc; color: #0284c7; background-color: #e0f2fe;" onclick="enableEditMode()">
+            <i class="fa-solid fa-pen-to-square me-1"></i> Chỉnh sửa hồ sơ
+          </button>
+          <button type="submit" id="btn_luu_cap_nhat" class="btn-brand shadow-sm px-4 fw-bold" style="height: 38px; display:none;">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu cập nhật
+          </button>
+          {% else %}
+          <span class="text-secondary small fw-semibold"><i class="fa-solid fa-lock me-1"></i> Chế độ chỉ xem</span>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var EDITABLE_DETAIL_IDS = [
+    'detail_input_gia', 'detail_input_coc', 'detail_input_odo', 'detail_input_fuel', 'detail_input_note',
+    'detail_input_namsx', 'detail_input_sokhung', 'detail_input_somay', 'detail_input_hanbh',
+    'detail_input_ngaymua', 'detail_input_giatrimua'
+];
+
+function setDetailDateReadonly(inputEl, isReadonly) {
+    if (!inputEl) return;
+    inputEl.readOnly = isReadonly;
+    if (inputEl._flatpickr && inputEl._flatpickr.altInput) {
+        inputEl._flatpickr.altInput.disabled = isReadonly;
+        inputEl._flatpickr.altInput.style.backgroundColor = isReadonly ? '#f8fafc' : '#ffffff';
+        inputEl._flatpickr.altInput.style.borderColor = isReadonly ? '#cbd5e1' : 'var(--brand-primary, #f44905)';
+    }
+}
+
+function enableEditMode() {
+    document.getElementById('vehicleDetailForm').classList.add('is-editing');
+    EDITABLE_DETAIL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) setDetailDateReadonly(el, false);
+    });
+    const statusSelect = document.getElementById('detail_select_status');
+    const curCode = statusSelect.dataset.currentCode;
+    const canChangeStatus = (curCode === 'CON_TRONG' || curCode === 'CHO_VE_SINH' || curCode === 'NGUNG_HOAT_DONG');
+    statusSelect.disabled = !canChangeStatus;
+
+    const hintEl = document.getElementById('detail_status_hint');
+    if (canChangeStatus) {
+        hintEl.textContent = 'Có thể chuyển sang "Ngưng hoạt động" hoặc kích hoạt lại "Còn trống".';
+        hintEl.className = 'text-primary d-block mt-1 fw-semibold';
+    } else {
+        hintEl.textContent = 'Xe đang thuê hoặc đang bảo dưỡng, hoàn tất quy trình trước khi đổi trạng thái.';
+        hintEl.className = 'text-danger d-block mt-1 fw-semibold';
+    }
+
+    document.getElementById('detail_photo_edit').style.display = 'block';
+    document.getElementById('btn_chinh_sua').style.display = 'none';
+    document.getElementById('btn_luu_cap_nhat').style.display = 'inline-flex';
+    document.getElementById('detail_edit_mode_badge').style.display = 'inline-block';
+}
+
+function openDetailModalFromButton(btn) {
+    document.getElementById('vehicleDetailForm').classList.remove('is-editing');
+    document.getElementById('detail_photo_edit').style.display = 'none';
+    document.getElementById('detail_photo_input').value = '';
+    const editBtn = document.getElementById('btn_chinh_sua');
+    if (editBtn) editBtn.style.display = 'inline-flex';
+    const saveBtn = document.getElementById('btn_luu_cap_nhat');
+    if (saveBtn) saveBtn.style.display = 'none';
+    document.getElementById('detail_edit_mode_badge').style.display = 'none';
+    document.getElementById('detail_status_hint').textContent = '';
+
+    EDITABLE_DETAIL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) setDetailDateReadonly(el, true);
+    });
+
+    const statusCode = btn.getAttribute('data-status-code') || 'CON_TRONG';
+    const statusSelect = document.getElementById('detail_select_status');
+    statusSelect.value = statusCode;
+    statusSelect.disabled = true;
+    statusSelect.dataset.currentCode = statusCode;
+
+    const photoUrl = btn.getAttribute('data-photo') || '';
+    const photoImg = document.getElementById('detail_photo_preview');
+    const photoEmpty = document.getElementById('detail_photo_empty');
+    if (photoUrl) {
+        photoImg.src = photoUrl;
+        photoImg.hidden = false;
+        photoEmpty.style.display = 'none';
+    } else {
+        photoImg.hidden = true;
+        photoEmpty.style.display = 'block';
+    }
+
+    document.getElementById('detail_input_madongxe').value = btn.getAttribute('data-madongxe');
+    document.getElementById('detail_input_bienso_hidden').value = btn.getAttribute('data-bienso');
+    document.getElementById('detail_bien_so').innerText = btn.getAttribute('data-bienso');
+    document.getElementById('detail_dong_xe').innerText = btn.getAttribute('data-dongxe');
+
+    const badgeElement = document.getElementById('detail_trang_thai');
+    badgeElement.innerText = btn.getAttribute('data-trangthai');
+    const badgeClassMap = {
+        'success': 'badge bg-success-subtle text-success border border-success-subtle',
+        'warning': 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+        'info': 'badge bg-primary-subtle text-primary border border-primary-subtle',
+        'neutral': 'badge bg-secondary-subtle text-secondary border border-secondary-subtle'
+    };
+    badgeElement.className = badgeClassMap[btn.getAttribute('data-badge')] || badgeClassMap['neutral'];
+
+    const bhAlert = btn.getAttribute('data-insurance-alert') || '';
+    const bhBadge = document.getElementById('detail_bh_badge');
+    if (bhAlert === 'HET_HAN') {
+        bhBadge.style.display = 'inline-block';
+        bhBadge.className = 'badge bg-danger text-white';
+        bhBadge.innerText = 'Hết hạn bảo hiểm';
+    } else if (bhAlert === 'SAP_HET_HAN') {
+        bhBadge.style.display = 'inline-block';
+        bhBadge.className = 'badge bg-warning text-dark';
+        bhBadge.innerText = 'Bảo hiểm sắp hết hạn';
+    } else {
+        bhBadge.style.display = 'none';
+    }
+
+    const fmtMoney = (v) => new Intl.NumberFormat('vi-VN').format(Number(v || 0)) + ' đ';
+    document.getElementById('detail_stat_trips').innerText = btn.getAttribute('data-trips') || '0';
+    document.getElementById('detail_stat_revenue').innerText = fmtMoney(btn.getAttribute('data-revenue'));
+    document.getElementById('detail_stat_maint').innerText = fmtMoney(btn.getAttribute('data-maintcost'));
+    document.getElementById('detail_stat_profit').innerText = fmtMoney(btn.getAttribute('data-profit'));
+
+    document.getElementById('detail_input_gia').value = btn.getAttribute('data-gia');
+    document.getElementById('detail_input_coc').value = btn.getAttribute('data-tiencoc');
+    document.getElementById('detail_input_odo').value = btn.getAttribute('data-odo');
+    document.getElementById('detail_input_fuel').value = btn.getAttribute('data-fuel') || '100';
+    document.getElementById('detail_input_note').value = btn.getAttribute('data-note') || '';
+    document.getElementById('detail_odo_luy_ke').innerText = parseInt(btn.getAttribute('data-odoluyke') || 0).toLocaleString('vi-VN');
+    document.getElementById('detail_input_namsx').value = btn.getAttribute('data-namsx') || '';
+    document.getElementById('detail_input_sokhung').value = btn.getAttribute('data-sokhung') || '';
+    document.getElementById('detail_input_somay').value = btn.getAttribute('data-somay') || '';
+
+    const setDateVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = val || '';
+        if (el._flatpickr) el._flatpickr.setDate(val || '', false);
+    };
+    setDateVal('detail_input_hanbh', btn.getAttribute('data-hanbh'));
+    setDateVal('detail_input_ngaymua', btn.getAttribute('data-ngaymua'));
+    document.getElementById('detail_input_giatrimua').value = btn.getAttribute('data-giatrimua') || '';
+
+    openModal('detailModal');
+}
+</script>

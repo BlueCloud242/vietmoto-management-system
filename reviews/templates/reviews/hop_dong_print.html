@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hợp Đồng Thuê Xe Máy No {{ hop_dong.ma_hop_dong }} - Vietmoto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #f44905;
+        }
+        html, body {
+            background-color: #f8fafc !important;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+        }
+        .a4-page-wrapper {
+            max-width: 880px;
+            margin: 24px auto 40px auto;
+            padding: 0 15px;
+        }
+        .page-title {
+            font-size: 1.45rem;
+            letter-spacing: -0.3px;
+        }
+
+        /* CSS ĐẶC TRỊ LỖI IN: ẨN TOÀN BỘ MENU HỆ THỐNG, CHỈ IN TỜ HỢP ĐỒNG KHỔ A4 */
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #in-hop-dong, #in-hop-dong * {
+                visibility: visible !important;
+            }
+            #in-hop-dong {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .avoid-page-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 8mm 12mm;
+            }
+            body {
+                background: #fff !important;
+                font-family: "Times New Roman", Times, serif, Arial !important;
+                font-size: 10pt !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="a4-page-wrapper">
+    <!-- THANH CÔNG CỤ ĐIỀU HƯỚNG TRÊN CÙNG (ẨN KHI IN) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
+        <div>
+            <button type="button"
+                    onclick="smartCloseOrBack('{% url 'hop_dong_list' %}')"
+                    class="btn btn-link p-0 text-decoration-none text-secondary fw-semibold small d-inline-flex align-items-center gap-1">
+                <i id="btn-back-icon" class="fa-solid fa-arrow-left"></i>
+                <span id="btn-back-label">Quay lại danh sách hợp đồng</span>
+            </button>
+            <h1 class="page-title text-dark fw-bold mt-1 mb-0">Hợp đồng điện tử: {{ hop_dong.ma_hop_dong }}</h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'bien_ban_detail' 'BBX-'|add:hop_dong.ma_hop_dong %}"
+               class="btn btn-outline-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2 bg-white">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>Xem Biên bản bàn giao</span>
+            </a>
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn btn-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2 px-3">
+                <i class="fa-solid fa-print"></i>
+                <span>In hợp đồng này</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TỜ HỢP ĐỒNG CHUẨN PHÁP LÝ SONG NGỮ VIETMOTO -->
+    <div id="in-hop-dong" class="card border p-4 mx-auto shadow-sm" style="max-width: 850px; border-radius: 12px; background: #fff; border-color: #cbd5e1 !important; color: #1e293b; font-size: 0.88rem; line-height: 1.5;">
+        <!-- TIÊU ĐỀ HỢP ĐỒNG -->
+        <div class="text-center mb-3 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+            <div class="d-flex justify-content-center align-items-center gap-2 mb-1">
+                <h5 class="fw-bold text-dark mb-0 tracking-tight">CÔNG TY CỔ PHẦN VIETMOTO / VIETMOTO JSC</h5>
+            </div>
+            <h4 class="fw-bold mb-1" style="color: #f44905; letter-spacing: 0.5px;">
+                HỢP ĐỒNG THUÊ XE MÁY / MOTORBIKE RENTAL AGREEMENT
+            </h4>
+            <div class="font-monospace text-secondary small">
+                No: <strong class="text-dark fs-6">{{ hop_dong.ma_hop_dong }}</strong> | Ngày ký / Date: <strong>{{ hop_dong.ngay_bat_dau|date:"d.m.Y" }}</strong>
+            </div>
+        </div>
+
+        <!-- 1. CÁC BÊN / PARTIES -->
+        <div class="mb-3">
+            <div class="fw-bold text-dark text-uppercase small mb-1 border-bottom pb-1" style="border-color: #e2e8f0 !important;">
+                1. Các Bên / Parties
+            </div>
+            <div class="row g-2">
+                <div class="col-6 border-end" style="border-color: #e2e8f0 !important;">
+                    <strong class="text-primary d-block small">BÊN CHO THUÊ / LESSOR:</strong>
+                    <div>Đơn vị: <strong>CÔNG TY CỔ PHẦN VIETMOTO</strong></div>
+                    <div>Địa chỉ: 61 Phan Tứ, Ngũ Hành Sơn, TP. Đà Nẵng</div>
+                    <div>Mã số thuế: <strong>0319219212</strong> | Hotline: <strong>0905.123.456</strong></div>
+                    <div>Đại diện ký hợp đồng: <strong>{{ hop_dong.ma_nhan_vien.ho_ten }}</strong></div>
+                </div>
+                <div class="col-6 ps-3">
+                    <strong class="text-primary d-block small">BÊN THUÊ / LESSEE:</strong>
+                    <div>Họ tên / Full Name: <strong class="text-dark fs-6">{{ hop_dong.ma_khach_hang.ho_ten }}</strong></div>
+                    <div>Quốc tịch / Nationality: <strong>{{ hop_dong.ma_khach_hang.quoc_tich|default:"Việt Nam" }}</strong></div>
+                    <div>Số CCCD/Hộ chiếu / ID/Passport: <strong>{{ hop_dong.ma_khach_hang.so_cccd|default:"Chưa cập nhật" }}</strong></div>
+                    <div>Điện thoại / Phone: <strong>{{ hop_dong.ma_khach_hang.so_dien_thoai }}</strong></div>
+                    <div>GPLX / Driving License: <strong class="text-success">{{ hop_dong.ma_khach_hang.giay_phep_lai_xe }}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. PHƯƠNG TIỆN & THỜI HẠN THUÊ / RENTAL PERIOD -->
+        <div class="mb-3">
+            <div class="fw-bold text-dark text-uppercase small mb-1 border-bottom pb-1" style="border-color: #e2e8f0 !important;">
+                2. Nội dung &amp; Thời hạn thuê / Subject &amp; Rental Period
+            </div>
+            <table class="table table-bordered align-middle mb-1" style="border-color: #cbd5e1; font-size: 0.84rem;">
+                <thead class="bg-light text-center">
+                    <tr>
+                        <th>Phương tiện (Motorbike)</th>
+                        <th>Thời điểm nhận (Start)</th>
+                        <th>Thời điểm hẹn trả (End)</th>
+                        <th>Quy định trễ giờ (Excess Hours)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong class="fs-6 text-dark d-block">{{ hop_dong.bien_so_xe.bien_so_xe }}</strong>
+                            <span class="text-secondary">{{ hop_dong.bien_so_xe.ma_dong_xe.ten_dong_xe }}</span>
+                        </td>
+                        <td class="text-center fw-semibold">{{ hop_dong.ngay_bat_dau|date:"H:i - d/m/Y" }}</td>
+                        <td class="text-center fw-semibold">{{ hop_dong.ngay_ket_thuc_du_kien|date:"H:i - d/m/Y" }}</td>
+                        <td class="small">
+                            - Quá &le; 4 giờ: Phụ phí nửa ngày.<br>
+                            - Quá &gt; 4 giờ: Phụ phí cả ngày (1 ngày = 24h).
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <small class="text-secondary d-block fst-italic" style="font-size: 0.78rem;">
+                - Chi tiết tình trạng kỹ thuật, vạch xăng/mức pin và phụ kiện được ghi nhận tại Biên bản bàn giao xuất bãi đính kèm (là một phần không thể tách rời của Hợp đồng này).
+            </small>
+        </div>
+
+        <!-- 3. GIÁ THUÊ & CƠ CẤU ĐẶT CỌC / RENTAL FEE & DEPOSIT -->
+        <div class="mb-3 avoid-page-break">
+            <div class="fw-bold text-dark text-uppercase small mb-1 border-bottom pb-1">
+                3. Giá thuê &amp; Cơ cấu đặt cọc / Rental Fee and Security Deposit
+            </div>
+            <div class="p-3 border rounded bg-light" style="font-size: 0.85rem;">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Tiền thuê xe / Rental fee ({{ hop_dong.so_ngay_thue }} ngày):</span>
+                    <strong class="text-primary">{{ hop_dong.tong_tien_thanh_toan|floatformat:0 }} VND</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Đặt cọc bảo đảm tài sản / Asset Security Deposit:</span>
+                    {% if hop_dong.hinh_thuc_dat_coc == 'GIU_CCCD' or hop_dong.so_tien_coc_thuc_thu == 0 %}
+                        <strong class="text-success">Giữ bản gốc Căn cước công dân (0 VND + CCCD)</strong>
+                    {% else %}
+                        <strong class="text-success">{{ hop_dong.so_tien_coc_thuc_thu|floatformat:0 }} VND (Tiền mặt / Chuyển khoản)</strong>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between pt-2 border-top mt-1 fs-6">
+                    <span class="fw-bold text-dark">TỔNG TIỀN ĐÃ THANH TOÁN TẠI QUẦY:</span>
+                    <strong class="fw-bold" style="color: #f44905;">
+                        {{ hop_dong.tong_tien_thanh_toan|add:hop_dong.so_tien_coc_thuc_thu|floatformat:0 }} VND
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. NGHĨA VỤ BÊN THUÊ / LESSEE'S OBLIGATIONS -->
+        <div class="mb-3 text-secondary" style="font-size: 0.78rem; line-height: 1.45;">
+            <div class="fw-bold text-dark text-uppercase small mb-1 border-bottom pb-1" style="border-color: #e2e8f0 !important;">
+                4. Nghĩa vụ bên thuê / Lessee's Obligations
+            </div>
+            1. Tuân thủ luật giao thông Việt Nam; luôn đội mũ bảo hiểm đạt chuẩn (Vietmoto trang bị miễn phí theo xe).<br>
+            2. Bảo quản chìa khóa, giấy tờ xe công chứng, phụ kiện (bộ sạc xe điện, khóa chống trộm bánh xe nếu để xe ngoài trời &gt; 2h).<br>
+            3. Khách hàng chịu trách nhiệm sửa chữa các hư hỏng ngoài hao mòn tự nhiên và thanh toán các khoản phạt vi phạm giao thông phát sinh trong thời gian thuê.
+        </div>
+
+        <!-- 5. CHỮ KÝ XÁC NHẬN GIAO KẾT & MÃ QR -->
+        <div class="row align-items-center text-center mt-3 pt-2 avoid-page-break">
+            <div class="col-4">
+                <span class="fw-bold text-dark text-uppercase small d-block">BÊN CHO THUÊ / LESSOR</span>
+                <small class="text-muted d-block fst-italic">(Ký số / Chữ ký nhân viên)</small>
+                <div style="height: 50px;"></div>
+                <strong class="text-dark d-block">{{ hop_dong.ma_nhan_vien.ho_ten }}</strong>
+            </div>
+            <div class="col-4">
+                <span class="fw-bold text-dark text-uppercase small d-block">BÊN THUÊ / LESSEE</span>
+                <small class="text-muted d-block fst-italic">(Khách hàng ký nhận)</small>
+                <div style="height: 50px;"></div>
+                <strong class="text-dark d-block">{{ hop_dong.ma_khach_hang.ho_ten }}</strong>
+            </div>
+            <div class="col-4 border-start">
+                <img src="{{ qr_code_url }}" alt="QR Hợp đồng" width="80" height="80" class="d-block mx-auto mb-1">
+                <small class="text-muted d-block" style="font-size: 0.68rem;">Quét QR tra cứu bản gốc</small>
+                <small class="text-secondary font-monospace" style="font-size: 0.65rem;">{{ hop_dong.ma_hop_dong }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        if (window.opener && !window.opener.closed) {
+            const icon = document.getElementById('btn-back-icon');
+            const lbl = document.getElementById('btn-back-label');
+            if (icon) icon.className = 'fa-solid fa-xmark';
+            if (lbl) lbl.textContent = 'Đóng tab này';
+        }
+    })();
+
+    function smartCloseOrBack(fallbackUrl) {
+        if (window.opener && !window.opener.closed) {
+            window.close();
+        } else {
+            window.location.href = fallbackUrl;
+        }
+    }
+</script>
+</body>
+</html>

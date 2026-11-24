@@ -1,0 +1,291 @@
+<style>
+    /* =========================================================================
+       HỆ THỐNG MODAL CHUẨN VIETMOTO (DÙNG CHUNG CHO THÊM DÒNG XE & THÊM XE MỚI)
+    ========================================================================= */
+    .vm-modal-box {
+        width: min(880px, calc(100vw - 24px));
+        max-width: 880px;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+        overflow: hidden;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        max-height: 92vh;
+    }
+    .vm-modal-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #ffffff;
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+    .vm-modal-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .vm-modal-header p {
+        margin: 3px 0 0;
+        color: #94a3b8;
+        font-size: 0.82rem;
+        font-weight: 500;
+    }
+    .vm-modal-close {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+        font-size: 20px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+    }
+    .vm-modal-close:hover {
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+    }
+    .vm-modal-form {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+    .vm-modal-body {
+        padding: 20px 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+    .vm-modal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        align-items: stretch;
+    }
+    .vm-modal-section {
+        display: flex;
+        flex-direction: column;
+    }
+    .vm-modal-section h3 {
+        margin: 0 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+        color: #0f172a;
+        font-size: 0.86rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .vm-modal-section h3 i {
+        color: var(--brand-primary, #f44905);
+    }
+    .vm-modal-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .vm-modal-fields .form-field {
+        margin: 0;
+        min-width: 0;
+    }
+    .vm-modal-fields .form-field.full {
+        grid-column: 1 / -1;
+    }
+    .vm-modal-fields label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 5px;
+    }
+    .vm-modal-fields .form-control,
+    .vm-modal-fields .form-select {
+        height: 38px;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 9px;
+        padding: 6px 11px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #0f172a;
+        background-color: #ffffff;
+    }
+    .vm-modal-fields textarea.form-control {
+        height: auto;
+        min-height: 76px;
+    }
+    .vm-modal-fields .form-control[readonly] {
+        background-color: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+    }
+    .vm-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 24px;
+        border-top: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        flex-shrink: 0;
+    }
+    .vm-photo-dropzone {
+        flex: 1;
+        min-height: 240px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+    .vm-photo-dropzone:hover {
+        border-color: var(--brand-primary, #f44905);
+        background: #fffaf7;
+    }
+    .vm-photo-dropzone img {
+        display: block;
+        width: 100%;
+        height: 195px;
+        object-fit: contain;
+        border-radius: 9px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 12px;
+    }
+    .vm-photo-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 16px;
+        border: 1.5px solid var(--brand-primary, #f44905);
+        border-radius: 9px;
+        background: #ffffff;
+        color: var(--brand-primary, #f44905);
+        font-size: 0.84rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .vm-photo-btn:hover {
+        background: #fff1eb;
+    }
+    @media (max-width: 720px) {
+        .vm-modal-grid,
+        .vm-modal-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div id="dongXeModal" class="modalback-pro" onclick="if(event.target === this) closeModal('dongXeModal')">
+  <div class="modal-content-box vm-modal-box">
+    <div class="vm-modal-header">
+      <div>
+        <h2><i class="fa-solid fa-layer-group text-warning"></i> Thêm dòng xe mới</h2>
+      </div>
+      <button type="button" class="vm-modal-close" onclick="closeModal('dongXeModal')" aria-label="Đóng">&times;</button>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="vm-modal-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_dong_xe">
+
+      <div class="vm-modal-body">
+        <div class="vm-modal-grid">
+          <!-- CỘT TRÁI: THÔNG TIN DÒNG XE -->
+          <section class="vm-modal-section">
+            <h3><i class="fa-solid fa-motorcycle"></i> Thông tin dòng xe</h3>
+            <div class="vm-modal-fields">
+              <div class="form-field">
+                <label for="dx_ma_dong_xe">Mã dòng xe</label>
+                <input id="dx_ma_dong_xe" name="ma_dong_xe" value="{{ next_ma_dong_xe }}" readonly class="form-control font-monospace">
+              </div>
+              <div class="form-field">
+                <label for="dx_ten_dong_xe">Tên dòng xe *</label>
+                <input id="dx_ten_dong_xe" name="ten_dong_xe" class="form-control" placeholder="VD: Honda Vision 2025" required>
+              </div>
+              <div class="form-field">
+                <label for="dx_loai_dong_co">Loại động cơ *</label>
+                <select id="dx_loai_dong_co" name="loai_dong_co" class="form-select" required>
+                  <option value="XANG">Xe xăng</option>
+                  <option value="DIEN">Xe điện</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="dx_loai_xe">Phân loại xe</label>
+                <input id="dx_loai_xe" name="loai_xe" class="form-control" placeholder="VD: Xe tay ga, Xe số...">
+              </div>
+              <div class="form-field">
+                <label for="dx_don_gia">Đơn giá / ngày (VNĐ) *</label>
+                <input id="dx_don_gia" type="number" name="don_gia_ngay" class="form-control font-monospace" min="0" step="1000" value="150000" required>
+              </div>
+              <div class="form-field">
+                <label for="dx_tien_coc">Tiền cọc định mức (VNĐ) *</label>
+                <input id="dx_tien_coc" type="number" name="tien_coc_dinh_muc" class="form-control font-monospace" min="0" step="50000" value="1000000" required>
+              </div>
+              <div class="form-field full">
+                <div class="form-check form-switch d-flex align-items-center gap-2 py-1 px-2 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0; margin-left: 0;">
+                  <input class="form-check-input ms-0" type="checkbox" role="switch" id="id_dang_kinh_doanh" name="dang_kinh_doanh" checked style="cursor: pointer;">
+                  <label class="form-check-label fw-bold text-dark mb-0" for="id_dang_kinh_doanh" style="cursor: pointer;">
+                    Đang mở kinh doanh cho thuê
+                  </label>
+                </div>
+              </div>
+              <div class="form-field full">
+                <label for="dx_mo_ta">Mô tả chi tiết</label>
+                <textarea id="dx_mo_ta" name="mo_ta" class="form-control" rows="2" placeholder="Đặc điểm nổi bật, dung tích cốp, phụ kiện đi kèm..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- CỘT PHẢI: ẢNH ĐẠI DIỆN DÒNG XE -->
+          <section class="vm-modal-section">
+            <h3><i class="fa-solid fa-image"></i> Ảnh đại diện dòng xe</h3>
+            <div class="vm-photo-dropzone">
+              <img id="dongXePhotoPreview" alt="Ảnh xem trước" hidden>
+              <div id="dongXePhotoEmpty" class="text-secondary">
+                <i class="fa-regular fa-image fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                <div class="fw-bold small text-dark">Chưa có ảnh đại diện</div>
+                <div class="small mt-1" style="font-size: 0.76rem;">Hỗ trợ PNG, JPG, JPEG (Tối đa 8 MB)</div>
+              </div>
+              <input id="dongXePhotoInput" type="file" name="hinh_anh" accept="image/*" onchange="previewVehiclePhoto(this,'dongXePhotoPreview','dongXePhotoEmpty')" style="display:none;">
+              <label for="dongXePhotoInput" class="vm-photo-btn mt-3 mb-0">
+                <i class="fa-solid fa-upload"></i> Chọn ảnh từ máy
+              </label>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="vm-modal-footer">
+        <button type="submit" class="btn-brand shadow-sm px-4 fw-bold" style="height: 38px;">
+          <i class="fa-solid fa-floppy-disk me-1"></i> Lưu dòng xe
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

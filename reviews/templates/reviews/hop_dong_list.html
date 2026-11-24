@@ -1,0 +1,474 @@
+{% extends 'reviews/base.html' %}
+
+{% block title %}Quản lý hợp đồng | Vietmoto{% endblock %}
+{% block breadcrumb %}Quản lý hợp đồng{% endblock %}
+
+{% block content %}
+<style>
+    .vm-contracts {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #0f172a;
+    }
+
+    #table-wrapper {
+        transition: opacity 0.12s ease;
+    }
+
+    /* BADGE BIỂN SỐ XE ĐỒNG BỘ TOÀN HỆ THỐNG */
+    .vm-plate-badge {
+        display: inline-block;
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1.5px solid #94a3b8;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.92rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+    }
+
+    /* NHẤN MẠNH CÁC DÒNG CẦN CHÚ Ý TRONG BẢNG */
+    tr.row-hd-overdue {
+        background-color: #fff1f2 !important;
+        box-shadow: inset 4px 0 0 #e11d48;
+    }
+    tr.row-hd-overdue:hover {
+        background-color: #ffe4e6 !important;
+    }
+
+    tr.row-hd-expiring {
+        background-color: #fffbeb !important;
+        box-shadow: inset 4px 0 0 #f59e0b;
+    }
+    tr.row-hd-expiring:hover {
+        background-color: #fef3c7 !important;
+    }
+
+    tr.row-hd-pending {
+        background-color: #f8fafc !important;
+        box-shadow: inset 4px 0 0 #0284c7;
+    }
+
+    /* NÚT HÀNH ĐỘNG CHÍNH NỔI BẬT */
+    .btn-action-handover {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25) !important;
+    }
+    .btn-action-handover:hover {
+        background: #020617 !important;
+        transform: translateY(-1px);
+    }
+
+    .btn-action-return {
+        background: linear-gradient(135deg, #f44905 0%, #ea580c 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: 0 2px 6px rgba(244, 73, 5, 0.28) !important;
+    }
+    .btn-action-return:hover {
+        background: #d93e00 !important;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="vm-contracts">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="page-title text-dark fw-bold mb-1">QUẢN LÝ HỢP ĐỒNG</h1>
+        </div>
+        {% if perms_vm.can_manage_contracts %}
+        <a href="{% url 'hop_dong_create' %}" class="btn-brand shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Lập hợp đồng mới
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card-custom mb-0">
+        <!-- THANH TÌM KIẾM HỢP ĐỒNG -->
+        <form method="GET" action="{% url 'hop_dong_list' %}" hx-boost="false" class="row g-2 mb-3" id="contract-search-form">
+            <input type="hidden" name="trang_thai" id="input-trang-thai" value="{{ current_tab|default:'ALL' }}">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-dark fw-bold" style="border-color: #cbd5e1; border-radius: 9px 0 0 9px;">
+                        <i class="fa-solid fa-magnifying-glass text-secondary"></i>
+                    </span>
+                    <input type="text"
+                           id="input-search"
+                           name="q"
+                           value="{{ query|default:'' }}"
+                           class="form-control border-start-0 text-dark font-monospace"
+                           style="border-color: #cbd5e1; border-radius: 0 9px 9px 0;"
+                           placeholder="Tìm kiếm theo Mã HĐ, Tên khách hàng, SĐT, Biển số xe...">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" id="btn-search-submit" class="btn btn-dark flex-grow-1 fw-bold shadow-sm" style="border-radius: 9px; height: 38px;">
+                    <i class="fa-solid fa-filter me-1"></i> Tìm kiếm
+                </button>
+                <button type="button" id="btn-reset-contract" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 38px; border-radius: 9px; border-color: #cbd5e1;" title="Đặt lại bộ lọc">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- THANH TABS SEGMENTED PILL -->
+        <div class="vm-tabs-bar mb-3" id="tab-container" hx-boost="false" role="tablist" aria-label="Lọc trạng thái hợp đồng">
+            <button type="button"
+                    data-status="ALL"
+                    class="vm-tab-item btn-tab {% if current_tab == 'ALL' or not current_tab %}active{% endif %}">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Tất cả</span>
+                <span class="vm-tab-badge" id="badge-hd-ALL">{{ count_all|default:page_obj.paginator.count|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-status="CHO_BAN_GIAO"
+                    class="vm-tab-item btn-tab {% if current_tab == 'CHO_BAN_GIAO' %}active{% endif %}">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>Chờ bàn giao</span>
+                <span class="vm-tab-badge" id="badge-hd-CHO_BAN_GIAO">{{ count_cho_ban_giao|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-status="DANG_THUE"
+                    class="vm-tab-item btn-tab {% if current_tab == 'DANG_THUE' %}active{% endif %}">
+                <i class="fa-solid fa-motorcycle"></i>
+                <span>Đang thuê</span>
+                <span class="vm-tab-badge" id="badge-hd-DANG_THUE">{{ count_dang_thue|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-status="SAP_HET_HAN"
+                    class="vm-tab-item btn-tab {% if current_tab == 'SAP_HET_HAN' %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Sắp hết hạn (&lt;24h)</span>
+                <span class="vm-tab-badge badge-warning" id="badge-hd-SAP_HET_HAN">{{ count_sap_het_han|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-status="QUA_HAN"
+                    class="vm-tab-item btn-tab {% if current_tab == 'QUA_HAN' %}active{% endif %}">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Quá hạn</span>
+                <span class="vm-tab-badge badge-danger" id="badge-hd-QUA_HAN">{{ count_qua_han|default:0 }}</span>
+            </button>
+        </div>
+
+        <!-- KHU VỰC BẢNG DỮ LIỆU & PHÂN TRANG -->
+        <div id="table-wrapper" hx-boost="false">
+            <div class="table-responsive" style="border: 2px solid var(--border-strong, #94a3b8) !important; border-radius: 12px; overflow-x: auto;">
+                <table class="table table-hover align-middle mb-0" style="border-collapse: collapse; table-layout: fixed; min-width: 1120px; width: 100%;">
+                    <colgroup>
+                        <col style="width: 90px;">   <!-- MÃ HĐ -->
+                        <col style="width: 16%;">    <!-- KHÁCH HÀNG -->
+                        <col style="width: 18%;">    <!-- PHƯƠNG TIỆN -->
+                        <col style="width: 21%;">    <!-- LỊCH NHẬN & HẠN TRẢ -->
+                        <col style="width: 16%;">    <!-- TIỀN THUÊ & CỌC -->
+                        <col style="width: 12%;">    <!-- TRẠNG THÁI -->
+                        <col style="width: 185px;">  <!-- HÀNH ĐỘNG -->
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">MÃ HĐ</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">KHÁCH HÀNG</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">PHƯƠNG TIỆN</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">LỊCH NHẬN &amp; HẠN TRẢ</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">TIỀN THUÊ &amp; CỌC</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">TRẠNG THÁI</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hd in page_obj %}
+                        <tr class="{% if hd.trang_thai_hop_dong == 'DANG_THUE' and hd.ngay_ket_thuc_du_kien < now %}row-hd-overdue{% elif hd.is_sap_het_han %}row-hd-expiring{% elif hd.trang_thai_hop_dong == 'CHO_BAN_GIAO' %}row-hd-pending{% endif %}">
+                            <!-- MÃ HĐ -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                <span class="fw-bold text-dark font-monospace fs-6">{{ hd.ma_hop_dong }}</span>
+                            </td>
+
+                            <!-- KHÁCH HÀNG -->
+                            <td class="px-2 py-3 text-center">
+                                <div class="fw-bold text-dark fs-6 text-truncate" title="{{ hd.ma_khach_hang.ho_ten }}">{{ hd.ma_khach_hang.ho_ten }}</div>
+                                <span class="text-secondary small fw-semibold font-monospace text-nowrap">
+                                    <i class="fa-solid fa-phone me-1" style="font-size: 0.72rem;"></i>{{ hd.ma_khach_hang.so_dien_thoai }}
+                                </span>
+                            </td>
+
+                            <!-- PHƯƠNG TIỆN -->
+                            <td class="px-2 py-3 text-center">
+                                <div>
+                                    <span class="vm-plate-badge text-nowrap">{{ hd.bien_so_xe.bien_so_xe }}</span>
+                                </div>
+                                <div class="text-secondary small fw-semibold mt-1 text-truncate" title="{{ hd.bien_so_xe.ma_dong_xe.ten_dong_xe }}">
+                                    {{ hd.bien_so_xe.ma_dong_xe.ten_dong_xe }}
+                                </div>
+                            </td>
+
+                            <!-- LỊCH NHẬN & HẠN TRẢ -->
+                            <td class="px-2 py-3 text-center font-monospace">
+                                <div class="small text-secondary fw-semibold text-nowrap">
+                                    <span style="color: #16a34a;">Nhận:</span> <span class="text-dark">{{ hd.ngay_bat_dau|date:"H:i · d/m/Y" }}</span>
+                                </div>
+                                <div class="fw-bold mt-0.5 text-nowrap {% if hd.trang_thai_hop_dong == 'DANG_THUE' and hd.ngay_ket_thuc_du_kien < now %}text-danger{% elif hd.is_sap_het_han %}text-warning-emphasis{% else %}text-dark{% endif %}" style="font-size: 0.9rem;">
+                                    <span>Trả:</span> {{ hd.ngay_ket_thuc_du_kien|date:"H:i · d/m/Y" }}
+                                </div>
+                                {% if hd.trang_thai_hop_dong == 'DANG_THUE' and hd.ngay_ket_thuc_du_kien < now %}
+                                    <span class="badge bg-danger text-white mt-1 fw-bold shadow-2xs" style="font-size: 0.72rem;">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i>Trễ hạn trả xe
+                                    </span>
+                                {% elif hd.is_sap_het_han %}
+                                    <span class="badge bg-warning text-dark mt-1 fw-bold shadow-2xs" style="font-size: 0.72rem;">
+                                        <i class="fa-solid fa-bell me-1"></i>Nhắc trả (&lt;24h)
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- TIỀN THUÊ & CỌC -->
+                            <td class="px-2 py-3 text-center font-monospace">
+                                {% if hd.tong_tien_thanh_toan %}
+                                <div class="fw-bold text-nowrap" style="color: var(--brand-primary, #f44905); font-size: 0.96rem;">
+                                    Thuê: {{ hd.tong_tien_thanh_toan|floatformat:0 }} đ
+                                </div>
+                                {% endif %}
+                                <div class="small fw-semibold text-dark mt-0.5 text-nowrap">
+                                    Cọc giữ: <span class="text-success fw-bold">{{ hd.tien_coc_quy_dinh|floatformat:0 }} đ</span>
+                                </div>
+                            </td>
+
+                            <!-- TRẠNG THÁI -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                {% if hd.trang_thai_hop_dong == 'CHO_BAN_GIAO' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid fa-hourglass-half me-1"></i>Chờ bàn giao
+                                    </span>
+                                {% elif hd.trang_thai_hop_dong == 'DANG_THUE' %}
+                                    {% if hd.ngay_ket_thuc_du_kien < now %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-circle-exclamation me-1"></i>Quá hạn
+                                        </span>
+                                    {% elif hd.is_sap_het_han %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-clock-rotate-left me-1"></i>Sắp hết hạn
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-motorcycle me-1"></i>Đang thuê
+                                        </span>
+                                    {% endif %}
+                                {% elif hd.trang_thai_hop_dong == 'DA_TRA' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid fa-circle-check me-1"></i>Đã hoàn tất
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        {{ hd.get_trang_thai_hop_dong_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- HÀNH ĐỘNG -->
+                            <td class="px-2 py-3 align-middle text-center">
+                                <div class="d-grid gap-1" style="grid-template-columns: 1fr 1fr; width: 170px; margin: 0 auto;">
+                                    <a href="{% url 'hop_dong_print' hd.ma_hop_dong %}" target="vietmoto_doc_tab"
+                                       class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-sm {% if hd.trang_thai_hop_dong == 'DA_TRA' or not perms_vm.can_manage_handover and hd.trang_thai_hop_dong == 'CHO_BAN_GIAO' %}w-100{% endif %}"
+                                       style="height: 31px; font-size: 0.78rem; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 7px; {% if hd.trang_thai_hop_dong == 'DA_TRA' or not perms_vm.can_manage_handover and hd.trang_thai_hop_dong == 'CHO_BAN_GIAO' %}grid-column: span 2;{% endif %}"
+                                       title="In/Xem hợp đồng">
+                                        <i class="fa-solid fa-print"></i><span>In HĐ</span>
+                                    </a>
+
+                                    {% if hd.trang_thai_hop_dong == 'CHO_BAN_GIAO' and perms_vm.can_manage_handover %}
+                                        <a href="{% url 'bien_ban_xuat_bai' hd.ma_hop_dong %}" hx-boost="false"
+                                           class="btn btn-sm btn-action-handover d-flex align-items-center justify-content-center gap-1 px-1 fw-bold"
+                                           style="height: 31px; font-size: 0.78rem; border-radius: 7px;" title="Bàn giao xe">
+                                            <i class="fa-solid fa-clipboard-check"></i><span>Bàn giao</span>
+                                        </a>
+                                    {% elif hd.trang_thai_hop_dong == 'DANG_THUE' %}
+                                        <a href="{% url 'bien_ban_detail' 'BBX-'|add:hd.ma_hop_dong %}" target="vietmoto_doc_tab"
+                                           class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-sm"
+                                           style="height: 31px; font-size: 0.78rem; background-color: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; border-radius: 7px;" title="Xem BB xuất">
+                                            <i class="fa-solid fa-file-export"></i><span>BB Xuất</span>
+                                        </a>
+                                        {% if hd.ngay_ket_thuc_du_kien >= now and perms_vm.can_manage_contracts %}
+                                            <a href="{% url 'hop_dong_gia_han' hd.ma_hop_dong %}" hx-boost="false"
+                                               class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-sm"
+                                               style="height: 31px; font-size: 0.78rem; background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; border-radius: 7px;" title="Gia hạn">
+                                                <i class="fa-solid fa-calendar-plus"></i><span>Gia hạn</span>
+                                            </a>
+                                        {% endif %}
+                                        {% if perms_vm.can_manage_handover %}
+                                        <a href="{% url 'bien_ban_tra_xe' hd.ma_hop_dong %}" hx-boost="false"
+                                           class="btn btn-sm btn-action-return d-flex align-items-center justify-content-center gap-1 px-1 fw-bold {% if hd.ngay_ket_thuc_du_kien < now %}w-100{% endif %}"
+                                           style="height: 31px; font-size: 0.78rem; border-radius: 7px; {% if hd.ngay_ket_thuc_du_kien < now %}grid-column: span 2;{% endif %}" title="Trả xe">
+                                            <i class="fa-solid fa-rotate-left"></i><span>Trả xe</span>
+                                        </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-dark fw-bold">
+                                <i class="fa-regular fa-file-lines fs-2 mb-2 d-block text-secondary"></i>
+                                Không có hợp đồng nào trong danh mục này.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PHÂN TRANG -->
+            {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-between align-items-center pt-3 px-1 bg-white flex-wrap gap-2">
+                <div class="small text-secondary fw-semibold">
+                    Hiển thị <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> trên tổng số <strong>{{ page_obj.paginator.count }}</strong> hợp đồng
+                </div>
+                <nav aria-label="Phân trang hợp đồng">
+                    <ul class="pagination mb-0">
+                        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                            <a class="page-link fw-bold page-ajax"
+                               href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}&trang_thai={{ current_tab|default:'ALL' }}{% if query %}&q={{ query|urlencode }}{% endif %}{% else %}#{% endif %}">&laquo;</a>
+                        </li>
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if num > page_obj.number|add:'-4' and num < page_obj.number|add:'4' %}
+                            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                <a class="page-link fw-bold page-ajax"
+                                   href="?page={{ num }}&trang_thai={{ current_tab|default:'ALL' }}{% if query %}&q={{ query|urlencode }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                            <a class="page-link fw-bold page-ajax"
+                               href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}&trang_thai={{ current_tab|default:'ALL' }}{% if query %}&q={{ query|urlencode }}{% endif %}{% else %}#{% endif %}">&raquo;</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const baseContractUrl = "{% url 'hop_dong_list' %}";
+    let activeAbortController = null;
+
+    function setActiveTab(status) {
+        const inputStatus = document.getElementById('input-trang-thai');
+        if (inputStatus) inputStatus.value = status;
+
+        document.querySelectorAll('#tab-container .btn-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.getAttribute('data-status') === status);
+        });
+    }
+
+    function loadContractTable(url, pushHistory = true) {
+        const wrapper = document.getElementById('table-wrapper');
+        if (!wrapper) {
+            window.location.href = url;
+            return;
+        }
+
+        if (activeAbortController) {
+            activeAbortController.abort();
+        }
+        activeAbortController = new AbortController();
+
+        const lockedHeight = wrapper.offsetHeight;
+        wrapper.style.minHeight = lockedHeight + 'px';
+        wrapper.style.opacity = '0.72';
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: activeAbortController.signal
+        })
+        .then(res => res.text())
+        .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newWrapper = doc.getElementById('table-wrapper');
+            if (newWrapper) {
+                wrapper.innerHTML = newWrapper.innerHTML;
+            }
+            doc.querySelectorAll('#tab-container .vm-tab-badge').forEach(newBadge => {
+                const curBadge = document.getElementById(newBadge.id);
+                if (curBadge) curBadge.textContent = newBadge.textContent;
+            });
+            wrapper.style.opacity = '1';
+            requestAnimationFrame(() => {
+                wrapper.style.minHeight = '';
+            });
+            if (pushHistory) {
+                window.history.pushState({}, '', url);
+            }
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            wrapper.style.opacity = '1';
+            wrapper.style.minHeight = '';
+        });
+    }
+
+    if (!window.__vmContractListBound) {
+        window.__vmContractListBound = true;
+
+        document.addEventListener('click', function (e) {
+            const tabBtn = e.target.closest('#tab-container .btn-tab');
+            if (tabBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const status = tabBtn.getAttribute('data-status') || 'ALL';
+                const queryVal = (document.getElementById('input-search')?.value || '').trim();
+                setActiveTab(status);
+                const url = `${baseContractUrl}?trang_thai=${encodeURIComponent(status)}&q=${encodeURIComponent(queryVal)}`;
+                loadContractTable(url);
+                return;
+            }
+
+            const resetBtn = e.target.closest('#btn-reset-contract');
+            if (resetBtn) {
+                e.preventDefault();
+                const searchEl = document.getElementById('input-search');
+                if (searchEl) searchEl.value = '';
+                setActiveTab('ALL');
+                loadContractTable(`${baseContractUrl}?trang_thai=ALL`);
+                return;
+            }
+
+            const pageLink = e.target.closest('#table-wrapper .page-ajax');
+            if (pageLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (pageLink.closest('.page-item.disabled') || pageLink.closest('.page-item.active')) return;
+                loadContractTable(pageLink.getAttribute('href'));
+            }
+        });
+
+        document.addEventListener('submit', function (e) {
+            if (e.target && e.target.id === 'contract-search-form') {
+                e.preventDefault();
+                e.stopPropagation();
+                const status = document.getElementById('input-trang-thai')?.value || 'ALL';
+                const queryVal = (document.getElementById('input-search')?.value || '').trim();
+                const url = `${baseContractUrl}?trang_thai=${encodeURIComponent(status)}&q=${encodeURIComponent(queryVal)}`;
+                loadContractTable(url);
+            }
+        });
+
+        window.addEventListener('popstate', function () {
+            if (!document.getElementById('tab-container')) return;
+            const params = new URLSearchParams(window.location.search);
+            const status = params.get('trang_thai') || 'ALL';
+            const q = params.get('q') || '';
+            const searchEl = document.getElementById('input-search');
+            if (searchEl) searchEl.value = q;
+            setActiveTab(status);
+            loadContractTable(window.location.href, false);
+        });
+    }
+})();
+</script>
+{% endblock %}

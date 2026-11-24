@@ -1,0 +1,99 @@
+<div id="vehicleModal" class="modalback-pro" onclick="if(event.target === this) closeModal('vehicleModal')">
+  <div class="modal-content-box vm-modal-box">
+    <div class="vm-modal-header">
+      <div>
+        <h2><i class="fa-solid fa-motorcycle text-warning"></i> Thêm phương tiện mới</h2>
+      </div>
+      <button type="button" class="vm-modal-close" onclick="closeModal('vehicleModal')" aria-label="Đóng">&times;</button>
+    </div>
+
+    <form method="POST" class="vm-modal-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_vehicle">
+
+      <div class="vm-modal-body">
+        <div class="vm-modal-grid">
+          <!-- CỘT TRÁI: VẬN HÀNH (4 HÀNG CÂN ĐỐI) -->
+          <section class="vm-modal-section">
+            <h3><i class="fa-solid fa-gauge-high"></i> Thông tin vận hành</h3>
+            <div class="vm-modal-fields">
+              <div class="form-field">
+                <label for="cv_bien_so">Biển số xe *</label>
+                <input id="cv_bien_so" name="bien_so_xe" class="form-control font-monospace text-uppercase" placeholder="VD: 43D1-123.45" required>
+              </div>
+              <div class="form-field">
+                <label for="cv_dong_xe">Dòng xe *</label>
+                <select id="cv_dong_xe" name="ma_dong_xe" class="form-select" required>
+                  {% for d in dong_xes %}
+                    <option value="{{ d.ma_dong_xe }}">{{ d.ten_dong_xe }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="cv_trang_thai">Trạng thái khởi tạo</label>
+                <select id="cv_trang_thai" name="trang_thai_xe" class="form-select">
+                  <option value="CON_TRONG">Còn trống (Sẵn sàng)</option>
+                  <option value="CHO_VE_SINH">Chờ rửa xe / Sạc pin</option>
+                  <option value="BAO_DUONG">Bảo dưỡng (Lập phiếu KT)</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="cv_nhien_lieu">Mức xăng / Pin (%)</label>
+                <input id="cv_nhien_lieu" type="number" min="0" max="100" name="muc_nhien_lieu_pin" class="form-control font-monospace" value="100">
+              </div>
+              <div class="form-field">
+                <label for="cv_odo">ODO hiện tại (km)</label>
+                <input id="cv_odo" type="number" min="0" name="odo_hien_tai" class="form-control font-monospace" value="0">
+              </div>
+              <div class="form-field">
+                <label for="cv_odo_bd">ODO lũy kế BD (km)</label>
+                <input id="cv_odo_bd" type="number" min="0" name="odo_luy_ke_bao_duong" class="form-control font-monospace" value="0">
+              </div>
+              <div class="form-field full">
+                <label for="cv_ghi_chu">Ghi chú tình trạng thực tế</label>
+                <input id="cv_ghi_chu" name="ghi_chu_tinh_trang" class="form-control" placeholder="VD: Xe mới nhập bãi, lốp zin, đủ 2 gương...">
+              </div>
+            </div>
+          </section>
+
+          <!-- CỘT PHẢI: HỒ SƠ XE & TÀI SẢN (4 HÀNG THẲNG HÀNG VỚI CỘT TRÁI) -->
+          <section class="vm-modal-section">
+            <h3><i class="fa-solid fa-folder-open"></i> Hồ sơ xe & Tài sản</h3>
+            <div class="vm-modal-fields">
+              <div class="form-field">
+                <label for="cv_nam_sx">Năm sản xuất</label>
+                <input id="cv_nam_sx" type="number" min="1900" max="2100" name="nam_san_xuat" class="form-control font-monospace" placeholder="VD: 2025">
+              </div>
+              <div class="form-field">
+                <label for="cv_han_bh">Hạn bảo hiểm TNDS</label>
+                <input id="cv_han_bh" type="date" name="han_bao_hiem" class="form-control font-monospace">
+              </div>
+              <div class="form-field full">
+                <label for="cv_so_khung">Số khung</label>
+                <input id="cv_so_khung" name="so_khung" class="form-control font-monospace text-uppercase" placeholder="Nhập số khung theo đăng ký xe">
+              </div>
+              <div class="form-field full">
+                <label for="cv_so_may">Số máy</label>
+                <input id="cv_so_may" name="so_may" class="form-control font-monospace text-uppercase" placeholder="Nhập số máy theo đăng ký xe">
+              </div>
+              <div class="form-field">
+                <label for="cv_ngay_mua">Ngày mua / Nhập bãi</label>
+                <input id="cv_ngay_mua" type="date" name="ngay_mua" class="form-control font-monospace">
+              </div>
+              <div class="form-field">
+                <label for="cv_gia_tri_mua">Giá trị mua (VNĐ)</label>
+                <input id="cv_gia_tri_mua" type="number" min="0" step="1000" name="gia_tri_mua" class="form-control font-monospace" placeholder="VD: 35000000">
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="vm-modal-footer">
+        <button type="submit" class="btn-brand shadow-sm px-4 fw-bold" style="height: 38px;">
+          <i class="fa-solid fa-floppy-disk me-1"></i> Lưu phương tiện
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

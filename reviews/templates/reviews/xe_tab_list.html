@@ -1,0 +1,358 @@
+<section id="tab-list">
+    <div class="card-panel p-3 bg-white" style="border: 1.5px solid #cbd5e1; border-radius: 14px;">
+
+        <!-- THANH CÔNG CỤ LỌC GỌN TRÊN 1 DÒNG DUY NHẤT -->
+        <div class="d-flex align-items-center gap-2 flex-wrap flex-xl-nowrap mb-3">
+            <div class="input-group" style="flex: 1 1 220px; width: auto; min-width: 190px;">
+                <span class="input-group-text bg-white border-end-0 text-secondary" style="border-color: #cbd5e1; border-radius: 10px 0 0 10px; height: 38px;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="searchInput" class="form-control border-start-0 text-dark font-monospace"
+                       style="border-color: #cbd5e1; border-radius: 0 10px 10px 0; height: 38px; font-size: 0.86rem;"
+                       placeholder="Tìm biển số, dòng xe..." onkeyup="filterTable(true)">
+            </div>
+
+            <select id="statusFilter" class="form-select text-dark fw-semibold"
+                    style="width: 175px; flex-shrink: 0; height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.86rem;"
+                    onchange="filterTable(true)">
+                <option value="">-- Trạng thái --</option>
+                <option value="Còn trống">Còn trống</option>
+                <option value="Đang thuê">Đang thuê</option>
+                <option value="Chờ rửa xe / Sạc pin">Chờ rửa / Sạc pin</option>
+                <option value="Đang bảo dưỡng">Đang bảo dưỡng</option>
+                <option value="Ngưng hoạt động">Ngưng hoạt động</option>
+            </select>
+
+            <select id="dongXeFilter" class="form-select text-dark fw-semibold"
+                    style="width: 175px; flex-shrink: 0; height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.86rem;"
+                    onchange="filterTable(true)">
+                <option value="">-- Dòng xe --</option>
+                {% for d in dong_xes %}
+                    <option value="{{ d.ten_dong_xe }}">{{ d.ten_dong_xe }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="alertFilter" class="form-select text-dark fw-semibold"
+                    style="width: 185px; flex-shrink: 0; height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.86rem;"
+                    onchange="filterTable(true)">
+                <option value="">-- Cảnh báo KT --</option>
+                <option value="MAINT_DUE">Sắp tới hạn BD</option>
+                <option value="INSURANCE_DUE">Sắp hết / Hết BH</option>
+                <option value="LOW_FUEL">Xăng / Pin &lt; 50%</option>
+            </select>
+
+            <button type="button" class="btn btn-dark d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width: 38px; height: 38px; border-radius: 10px;" title="Lọc dữ liệu" onclick="filterTable(true)">
+                <i class="fa-solid fa-filter"></i>
+            </button>
+
+            <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width: 38px; height: 38px; border-radius: 10px; border-color: #cbd5e1;" title="Đặt lại bộ lọc" onclick="resetAllVehicleFilters()">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+
+        <!-- KHUNG BẢNG BO GÓC NẰM BÊN TRONG CARD -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center mb-0" id="vehicleTable">
+                <thead>
+                    <tr>
+                        <th class="py-3 px-3 text-center">PHƯƠNG TIỆN</th>
+                        <th class="py-3 px-3 text-center">GIÁ THUÊ / NGÀY</th>
+                        <th class="py-3 px-3 text-center">TRẠNG THÁI</th>
+                        <th class="py-3 px-3 text-center">XĂNG / PIN</th>
+                        <th class="py-3 px-3 text-center">ODO & BẢO DƯỠNG</th>
+                        <th class="py-3 px-2 text-center" style="width: 195px;">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vehicles %}
+                    <tr class="vehicle-row"
+                        data-plate="{{ v.bien_so_xe }}"
+                        data-dongxe="{{ v.ma_dong_xe.ten_dong_xe }}"
+                        data-status="{% if v.trang_thai_xe == 'CON_TRONG' %}Còn trống{% elif v.trang_thai_xe == 'DANG_THUE' %}Đang thuê{% elif v.trang_thai_xe == 'CHO_VE_SINH' %}Chờ rửa xe / Sạc pin{% elif v.trang_thai_xe == 'BAO_DUONG' %}Đang bảo dưỡng{% elif v.trang_thai_xe == 'NGUNG_HOAT_DONG' %}Ngưng hoạt động{% else %}{{ v.get_trang_thai_xe_display }}{% endif %}"
+                        data-odobd="{{ v.odo_luy_ke_bao_duong|default:0 }}"
+                        data-insalert="{{ v.canh_bao_bao_hiem|default:'' }}"
+                        data-fuel="{{ v.muc_nhien_lieu_pin|default:100 }}">
+                        <!-- CỘT 1: PHƯƠNG TIỆN (CĂN GIỮA + BADGE SỐ MŨ GÓC TRÊN PHẢI BIỂN SỐ) -->
+                        <td class="px-3 py-3 text-center">
+                            <div class="d-inline-flex align-items-center justify-content-center gap-2">
+                                <div class="position-relative d-inline-block">
+                                    <span class="vm-plate-badge text-nowrap"
+                                          style="display: inline-block; background-color: #f1f5f9; border: 1.5px solid #94a3b8; border-radius: 8px; padding: 3px 12px; font-family: monospace; font-weight: 800; font-size: 0.95rem; color: #0f172a; letter-spacing: 0.5px;">
+                                        {{ v.bien_so_xe }}
+                                    </span>
+
+                                    {% if v.canh_bao_bao_hiem == 'HET_HAN' %}
+                                        <span class="badge bg-danger text-white shadow-2xs text-nowrap"
+                                              style="position: absolute; top: -9px; right: -16px; font-size: 0.58rem; padding: 2px 5px; border-radius: 999px; border: 1.5px solid #ffffff; line-height: 1.1; z-index: 2;">
+                                            Hết hạn BH
+                                        </span>
+                                    {% elif v.canh_bao_bao_hiem == 'SAP_HET_HAN' %}
+                                        <span class="badge bg-warning text-dark shadow-2xs text-nowrap"
+                                              style="position: absolute; top: -9px; right: -16px; font-size: 0.58rem; padding: 2px 5px; border-radius: 999px; border: 1.5px solid #ffffff; line-height: 1.1; z-index: 2;">
+                                            Sắp hết BH
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                {% if v.ma_dong_xe.loai_dong_co == 'DIEN' %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="font-size: 0.68rem;">
+                                        <i class="fa-solid fa-bolt"></i> Điện
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-secondary fw-semibold small mt-1">{{ v.ma_dong_xe.ten_dong_xe }}</div>
+                        </td>
+
+                        <!-- CỘT 2: GIÁ THUÊ -->
+                        <td class="px-3 py-3 text-center fw-bold text-primary font-monospace fs-6">
+                            {{ v.ma_dong_xe.don_gia_ngay|floatformat:0 }} đ
+                        </td>
+
+                        <!-- CỘT 3: TRẠNG THÁI -->
+                        <td class="px-3 py-3 text-center">
+                            {% if v.trang_thai_xe == 'CON_TRONG' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-circle-check me-1"></i>Còn trống
+                                </span>
+                            {% elif v.trang_thai_xe == 'DANG_THUE' %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-key me-1"></i>Đang thuê
+                                </span>
+                            {% elif v.trang_thai_xe == 'CHO_VE_SINH' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-spray-can-sparkles me-1"></i>Chờ rửa / Sạc pin
+                                </span>
+                            {% elif v.trang_thai_xe == 'BAO_DUONG' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-wrench me-1"></i>Bảo dưỡng{% if v.so_ngay_bao_duong %} ({{ v.so_ngay_bao_duong }}d){% endif %}
+                                </span>
+                            {% elif v.trang_thai_xe == 'NGUNG_HOAT_DONG' %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-ban me-1"></i>Ngưng hoạt động
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">{{ v.get_trang_thai_xe_display }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- CỘT 4: XĂNG / PIN -->
+                        <td class="px-3 py-3 text-center" style="min-width: 110px;">
+                            <div class="fw-bold font-monospace small {% if v.muc_nhien_lieu_pin <= 25 %}text-danger{% elif v.muc_nhien_lieu_pin <= 50 %}text-warning-emphasis{% else %}text-success{% endif %}">
+                                {% if v.ma_dong_xe.loai_dong_co == 'DIEN' %}
+                                    <i class="fa-solid fa-battery-three-quarters me-1"></i>{{ v.muc_nhien_lieu_pin }}% Pin
+                                {% else %}
+                                    <i class="fa-solid fa-gas-pump me-1"></i>{{ v.muc_nhien_lieu_pin }}% Xăng
+                                {% endif %}
+                            </div>
+                            <div class="progress mx-auto mt-1" style="height: 5px; width: 72px; background: #e2e8f0;">
+                                <div class="progress-bar {% if v.muc_nhien_lieu_pin <= 25 %}bg-danger{% elif v.muc_nhien_lieu_pin <= 50 %}bg-warning{% else %}bg-success{% endif %}"
+                                     style="width: {{ v.muc_nhien_lieu_pin }}%;"></div>
+                            </div>
+                        </td>
+
+                        <!-- CỘT 5: ODO & CHU KỲ BẢO DƯỠNG -->
+                        <td class="px-3 py-3 text-center font-monospace">
+                            <div class="fw-bold text-dark small">{{ v.odo_hien_tai }} km</div>
+                            <div class="small mt-0.5 {% if v.canh_bao_bao_duong == 'QUA_HAN' %}text-danger fw-bold{% elif v.canh_bao_bao_duong == 'SAP_DEN_HAN' %}text-warning-emphasis fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.75rem;">
+                                Lũy kế BD: {{ v.odo_luy_ke_bao_duong }}/2.000 km
+                            </div>
+                        </td>
+
+                        <!-- CỘT 6: THAO TÁC (CĂN GIỮA) -->
+                        <td class="px-2 py-3 align-middle text-center">
+                            {% if v.trang_thai_xe == 'CHO_VE_SINH' and perms_vm.can_ready_vehicle %}
+                                <!-- 3 nút: Hàng 1 gồm [Xong rửa/sạc] + [Báo hỏng], Hàng 2 gồm [Hồ sơ & Sửa] -->
+                                <div class="d-grid gap-1" style="grid-template-columns: 1fr 1fr; width: 192px; margin: 0 auto;">
+                                    <button type="button"
+                                            class="btn btn-sm btn-success d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.74rem; border-radius: 7px;"
+                                            onclick="openQuickReadyModal('{{ v.bien_so_xe }}')"
+                                            title="Xong rửa/sạc">
+                                        <i class="fa-solid fa-check"></i>
+                                        <span>Xong rửa/sạc</span>
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.74rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 7px;"
+                                            onclick="openQuickMaintModal('{{ v.bien_so_xe }}')"
+                                            title="Báo hỏng">
+                                        <i class="fa-solid fa-wrench"></i>
+                                        <span>Báo hỏng</span>
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.76rem; background-color: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; border-radius: 7px; grid-column: span 2;"
+                                            onclick="openDetailModalFromButton(this)"
+                                            data-bienso="{{ v.bien_so_xe }}"
+                                            data-madongxe="{{ v.ma_dong_xe.ma_dong_xe }}"
+                                            data-dongxe="{{ v.ma_dong_xe.ten_dong_xe }}"
+                                            data-engine="{{ v.ma_dong_xe.loai_dong_co }}"
+                                            data-status-code="{{ v.trang_thai_xe }}"
+                                            data-trangthai="{% if v.trang_thai_xe == 'BAO_DUONG' %}Đang bảo dưỡng{% else %}{{ v.get_trang_thai_xe_display }}{% endif %}"
+                                            data-gia="{{ v.ma_dong_xe.don_gia_ngay|default:'0' }}"
+                                            data-tiencoc="{{ v.ma_dong_xe.tien_coc_dinh_muc|default:'0' }}"
+                                            data-odo="{{ v.odo_hien_tai }}"
+                                            data-odoluyke="{{ v.odo_luy_ke_bao_duong }}"
+                                            data-fuel="{{ v.muc_nhien_lieu_pin }}"
+                                            data-note="{{ v.ghi_chu_tinh_trang|default:'' }}"
+                                            data-namsx="{{ v.nam_san_xuat|default:'' }}"
+                                            data-sokhung="{{ v.so_khung|default:'' }}"
+                                            data-somay="{{ v.so_may|default:'' }}"
+                                            data-hanbh="{{ v.han_bao_hiem|date:'Y-m-d'|default:'' }}"
+                                            data-insurance-alert="{{ v.canh_bao_bao_hiem }}"
+                                            data-ngaymua="{{ v.ngay_mua|date:'Y-m-d'|default:'' }}"
+                                            data-giatrimua="{{ v.gia_tri_mua|default:'' }}"
+                                            data-revenue="{{ v.tong_doanh_thu|default:'0' }}"
+                                            data-maintcost="{{ v.tong_chi_phi_bd|default:'0' }}"
+                                            data-profit="{{ v.loi_nhuan_gop|default:'0' }}"
+                                            data-trips="{{ v.tong_so_chuyen|default:'0' }}"
+                                            data-photo="{% if v.ma_dong_xe.hinh_anh %}{{ v.ma_dong_xe.hinh_anh.url }}{% endif %}"
+                                            data-badge="warning">
+                                        {% if perms_vm.can_manage_fleet %}
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span>Hồ sơ & Sửa</span>
+                                        {% else %}
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span>Xem hồ sơ</span>
+                                        {% endif %}
+                                    </button>
+                                </div>
+
+                            {% elif v.trang_thai_xe == 'CON_TRONG' and perms_vm.can_ready_vehicle or v.trang_thai_xe == 'CHO_VE_SINH' and perms_vm.can_ready_vehicle or v.trang_thai_xe == 'BAO_DUONG' and perms_vm.can_manage_maintenance %}
+                                <!-- 2 nút: Xếp ngang 1 hàng [Báo hỏng / Xử lý BD] + [Hồ sơ & Sửa] -->
+                                <div class="d-grid gap-1" style="grid-template-columns: 1fr 1fr; width: 192px; margin: 0 auto;">
+                                    {% if v.trang_thai_xe == 'BAO_DUONG' %}
+                                    <button type="button"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.74rem; background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 7px;"
+                                            onclick="openMaintenanceModal('{{ v.bien_so_xe|escapejs }}', '{{ v.odo_hien_tai }}', '{{ v.active_maintenance_id|escapejs }}', '{{ v.ma_dong_xe.loai_dong_co }}')"
+                                            title="Xử lý bảo dưỡng">
+                                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                                        <span>Xử lý BD</span>
+                                    </button>
+                                    {% else %}
+                                    <button type="button"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.74rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 7px;"
+                                            onclick="openQuickMaintModal('{{ v.bien_so_xe }}')"
+                                            title="Báo hỏng">
+                                        <i class="fa-solid fa-wrench"></i>
+                                        <span>Báo hỏng</span>
+                                    </button>
+                                    {% endif %}
+
+                                    <button type="button"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center gap-1 px-1 fw-bold shadow-2xs"
+                                            style="height: 31px; white-space: nowrap; font-size: 0.74rem; background-color: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; border-radius: 7px;"
+                                            onclick="openDetailModalFromButton(this)"
+                                            data-bienso="{{ v.bien_so_xe }}"
+                                            data-madongxe="{{ v.ma_dong_xe.ma_dong_xe }}"
+                                            data-dongxe="{{ v.ma_dong_xe.ten_dong_xe }}"
+                                            data-engine="{{ v.ma_dong_xe.loai_dong_co }}"
+                                            data-status-code="{{ v.trang_thai_xe }}"
+                                            data-trangthai="{% if v.trang_thai_xe == 'BAO_DUONG' %}Đang bảo dưỡng{% else %}{{ v.get_trang_thai_xe_display }}{% endif %}"
+                                            data-gia="{{ v.ma_dong_xe.don_gia_ngay|default:'0' }}"
+                                            data-tiencoc="{{ v.ma_dong_xe.tien_coc_dinh_muc|default:'0' }}"
+                                            data-odo="{{ v.odo_hien_tai }}"
+                                            data-odoluyke="{{ v.odo_luy_ke_bao_duong }}"
+                                            data-fuel="{{ v.muc_nhien_lieu_pin }}"
+                                            data-note="{{ v.ghi_chu_tinh_trang|default:'' }}"
+                                            data-namsx="{{ v.nam_san_xuat|default:'' }}"
+                                            data-sokhung="{{ v.so_khung|default:'' }}"
+                                            data-somay="{{ v.so_may|default:'' }}"
+                                            data-hanbh="{{ v.han_bao_hiem|date:'Y-m-d'|default:'' }}"
+                                            data-insurance-alert="{{ v.canh_bao_bao_hiem }}"
+                                            data-ngaymua="{{ v.ngay_mua|date:'Y-m-d'|default:'' }}"
+                                            data-giatrimua="{{ v.gia_tri_mua|default:'' }}"
+                                            data-revenue="{{ v.tong_doanh_thu|default:'0' }}"
+                                            data-maintcost="{{ v.tong_chi_phi_bd|default:'0' }}"
+                                            data-profit="{{ v.loi_nhuan_gop|default:'0' }}"
+                                            data-trips="{{ v.tong_so_chuyen|default:'0' }}"
+                                            data-photo="{% if v.ma_dong_xe.hinh_anh %}{{ v.ma_dong_xe.hinh_anh.url }}{% endif %}"
+                                            data-badge="{% if v.trang_thai_xe == 'CON_TRONG' %}success{% elif v.trang_thai_xe == 'DANG_THUE' %}info{% elif v.trang_thai_xe == 'CHO_VE_SINH' or v.trang_thai_xe == 'BAO_DUONG' %}warning{% else %}neutral{% endif %}">
+                                        {% if perms_vm.can_manage_fleet %}
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span>Hồ sơ & Sửa</span>
+                                        {% else %}
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span>Xem hồ sơ</span>
+                                        {% endif %}
+                                    </button>
+                                </div>
+
+                            {% else %}
+                                <!-- Chỉ có 1 nút duy nhất: Thu gọn kích thước chuẩn 1 nút và căn giữa -->
+                                <div class="d-flex justify-content-center">
+                                    <button type="button"
+                                            class="btn btn-sm d-inline-flex align-items-center justify-content-center gap-1 px-2 fw-bold shadow-2xs"
+                                            style="height: 31px; width: 112px; white-space: nowrap; font-size: 0.76rem; background-color: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; border-radius: 7px;"
+                                            onclick="openDetailModalFromButton(this)"
+                                            data-bienso="{{ v.bien_so_xe }}"
+                                            data-madongxe="{{ v.ma_dong_xe.ma_dong_xe }}"
+                                            data-dongxe="{{ v.ma_dong_xe.ten_dong_xe }}"
+                                            data-engine="{{ v.ma_dong_xe.loai_dong_co }}"
+                                            data-status-code="{{ v.trang_thai_xe }}"
+                                            data-trangthai="{% if v.trang_thai_xe == 'BAO_DUONG' %}Đang bảo dưỡng{% else %}{{ v.get_trang_thai_xe_display }}{% endif %}"
+                                            data-gia="{{ v.ma_dong_xe.don_gia_ngay|default:'0' }}"
+                                            data-tiencoc="{{ v.ma_dong_xe.tien_coc_dinh_muc|default:'0' }}"
+                                            data-odo="{{ v.odo_hien_tai }}"
+                                            data-odoluyke="{{ v.odo_luy_ke_bao_duong }}"
+                                            data-fuel="{{ v.muc_nhien_lieu_pin }}"
+                                            data-note="{{ v.ghi_chu_tinh_trang|default:'' }}"
+                                            data-namsx="{{ v.nam_san_xuat|default:'' }}"
+                                            data-sokhung="{{ v.so_khung|default:'' }}"
+                                            data-somay="{{ v.so_may|default:'' }}"
+                                            data-hanbh="{{ v.han_bao_hiem|date:'Y-m-d'|default:'' }}"
+                                            data-insurance-alert="{{ v.canh_bao_bao_hiem }}"
+                                            data-ngaymua="{{ v.ngay_mua|date:'Y-m-d'|default:'' }}"
+                                            data-giatrimua="{{ v.gia_tri_mua|default:'' }}"
+                                            data-revenue="{{ v.tong_doanh_thu|default:'0' }}"
+                                            data-maintcost="{{ v.tong_chi_phi_bd|default:'0' }}"
+                                            data-profit="{{ v.loi_nhuan_gop|default:'0' }}"
+                                            data-trips="{{ v.tong_so_chuyen|default:'0' }}"
+                                            data-photo="{% if v.ma_dong_xe.hinh_anh %}{{ v.ma_dong_xe.hinh_anh.url }}{% endif %}"
+                                            data-badge="{% if v.trang_thai_xe == 'CON_TRONG' %}success{% elif v.trang_thai_xe == 'DANG_THUE' %}info{% elif v.trang_thai_xe == 'CHO_VE_SINH' or v.trang_thai_xe == 'BAO_DUONG' %}warning{% else %}neutral{% endif %}">
+                                        {% if perms_vm.can_manage_fleet %}
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span>Hồ sơ & Sửa</span>
+                                        {% else %}
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span>Xem hồ sơ</span>
+                                        {% endif %}
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-secondary fw-semibold">
+                            <i class="fa-solid fa-motorcycle fs-2 mb-2 d-block text-secondary"></i>
+                            Chưa có phương tiện nào trong danh mục.
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    <tr id="emptyFilterRow" style="display: none;">
+                        <td colspan="6" class="text-center py-5 text-secondary fw-semibold">
+                            <i class="fa-solid fa-filter-circle-xmark fs-2 mb-2 d-block text-secondary"></i>
+                            Không có phương tiện nào khớp với điều kiện lọc.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- THANH PHÂN TRANG NỀN TRẮNG TRÙNG MÀU KHUNG BỌC NGOÀI -->
+        <div id="vehiclePaginationWrapper" class="d-flex justify-content-between align-items-center pt-3 px-1 bg-white flex-wrap gap-2">
+            <div id="vehiclePaginationInfo" class="small text-secondary fw-semibold"></div>
+            <nav aria-label="Phân trang danh sách xe">
+                <ul id="vehiclePaginationNav" class="pagination pagination-sm mb-0"></ul>
+            </nav>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,661 @@
+<style>
+    .vm-maintenance-page { color: #0f172a; }
+
+    /* Sub-tabs điều hướng nội bộ */
+    .vm-subtabs-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+    }
+    .vm-subtabs-group {
+        display: inline-flex;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 10px;
+        gap: 4px;
+    }
+    .vm-subtab-btn {
+        border: none;
+        background: transparent;
+        padding: 7px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+    }
+    .vm-subtab-btn:hover { color: #0f172a; }
+    .vm-subtab-btn.active {
+        background: #ffffff;
+        color: var(--brand-primary, #f44905);
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+    .vm-subtab-badge {
+        font-size: 0.72rem;
+        padding: 2px 7px;
+        border-radius: 99px;
+        font-weight: 800;
+    }
+
+    /* Khung biển số xe đồng bộ toàn hệ thống */
+    .vm-plate-badge {
+        display: inline-block;
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1.5px solid #94a3b8;
+        border-radius: 6px;
+        padding: 2px 7px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.25px;
+        white-space: nowrap;
+    }
+
+    /* Bảng bảo dưỡng sắc nét, hạn chế rớt chữ */
+    .vm-maint-table-wrap {
+        border: 1.5px solid #cbd5e1;
+        border-radius: 12px;
+        overflow-x: auto;
+        background: #ffffff;
+    }
+    .vm-maint-table {
+        width: 100%;
+        min-width: 720px;
+        margin-bottom: 0;
+        font-variant-numeric: tabular-nums;
+    }
+    .vm-maint-table thead th {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        white-space: nowrap;
+        padding: 10px 10px;
+        border-bottom: 1.5px solid #cbd5e1 !important;
+        vertical-align: middle;
+    }
+    .vm-maint-table tbody td {
+        padding: 10px 10px;
+        vertical-align: middle;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .vm-maint-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Khung cảnh báo dự phòng thu gọn, không kéo dài quá mức */
+    .vm-warning-panel {
+        background: #fffbeb;
+        border: 1.5px solid #fde68a;
+        border-radius: 12px;
+        padding: 10px;
+    }
+    .vm-warning-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 330px;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+    .vm-warning-item {
+        background: #ffffff;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 7px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    /* Đồng bộ kiểu dáng nút hành động (icon + chữ) trên toàn tab */
+    .vm-action-pill-btn {
+        height: 30px;
+        padding: 0 10px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+    .vm-action-pill-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(0.97);
+    }
+
+    /* Đồng bộ nút phân trang với trang Khách hàng */
+    .vm-pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-top: 14px;
+        background: #ffffff;
+    }
+    .vm-pagination-bar .pagination {
+        gap: 5px;
+    }
+    .vm-pagination-bar .page-link {
+        border-radius: 8px !important;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        padding: 5px 11px;
+        font-size: 0.84rem;
+        line-height: 1.25;
+        background-color: #ffffff;
+    }
+    .vm-pagination-bar .page-link:hover:not(:disabled) {
+        background-color: #f1f5f9;
+        color: #0f172a;
+        border-color: #94a3b8;
+    }
+    .vm-pagination-bar .page-item.active .page-link {
+        background-color: #1e293b !important;
+        border-color: #1e293b !important;
+        color: #ffffff !important;
+    }
+    .vm-pagination-bar .page-item.disabled .page-link {
+        color: #94a3b8;
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+    }
+</style>
+
+<section id="tab-maintenance" class="vm-maintenance-page" style="display:none;">
+    <div class="card-panel p-3 bg-white" style="border: 1.5px solid #cbd5e1; border-radius: 14px;">
+
+        <!-- THANH CHUYỂN ĐỔI SUB-TABS & CHỈ SỐ NHANH -->
+        <div class="vm-subtabs-bar">
+            <div class="vm-subtabs-group" role="tablist">
+                <button type="button" id="subtab-btn-active" class="vm-subtab-btn active" onclick="switchMaintSubTab('active')">
+                    <i class="fa-solid fa-wrench"></i>
+                    <span>Xưởng &amp; Cảnh báo</span>
+                    <span class="vm-subtab-badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace">
+                        {{ count_bd }}
+                    </span>
+                </button>
+                <button type="button" id="subtab-btn-history" class="vm-subtab-btn" onclick="switchMaintSubTab('history')">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Lịch sử chứng từ</span>
+                    <span id="vmSubtabDoneBadge" class="vm-subtab-badge bg-secondary-subtle text-secondary font-monospace">
+                        0
+                    </span>
+                </button>
+            </div>
+
+            <!-- Tóm tắt nhanh trạng thái xưởng -->
+            <div class="d-flex align-items-center gap-2 flex-wrap small fw-bold">
+                {% if vehicles_warning %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 text-nowrap">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ vehicles_warning|length }} xe sắp tới hạn BD
+                </span>
+                {% endif %}
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1.5 text-nowrap">
+                    Chi phí đã quyết toán: <strong id="vmHeaderTotalCost" class="font-monospace">0 đ</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             SUB-TAB 1: XƯỞNG & CẢNH BÁO (BỐ CỤC 2 CỘT GỌN GÀNG)
+             =================================================================== -->
+        <div id="maint-subtab-active">
+            <div class="row g-3 align-items-start">
+                <!-- CỘT CHÍNH: XE ĐANG NẰM XƯỞNG -->
+                <div class="{% if vehicles_warning %}col-lg-8{% else %}col-12{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <span class="fw-extrabold text-dark text-uppercase small text-nowrap" style="letter-spacing: 0.4px;">
+                            <i class="fa-solid fa-screwdriver-wrench text-primary me-1"></i> Xe đang khóa khai thác tại xưởng ({{ count_bd }})
+                        </span>
+
+                        <!-- Bộ lọc nhanh cho xe đang nằm xưởng -->
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="activeMaintSearchInput" class="form-control form-control-sm font-monospace"
+                                   style="width: 170px; height: 32px; border-color: #cbd5e1; border-radius: 8px; font-size: 0.8rem;"
+                                   placeholder="Tìm biển số, mã phiếu..." onkeyup="filterActiveMaintenanceRows()">
+                            <select id="activeMaintPriorityFilter" class="form-select form-select-sm fw-semibold"
+                                    style="width: 135px; height: 32px; border-color: #cbd5e1; border-radius: 8px; font-size: 0.8rem;"
+                                    onchange="filterActiveMaintenanceRows()">
+                                <option value="">Tất cả ưu tiên</option>
+                                <option value="KHAN_CAP">Khẩn cấp</option>
+                                <option value="CAO">Cao</option>
+                                <option value="BINH_THUONG">Bình thường</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="vm-maint-table-wrap">
+                        <table class="table table-hover align-middle vm-maint-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">PHIẾU / XE</th>
+                                    <th class="text-start">HẠNG MỤC &amp; TÌNH TRẠNG</th>
+                                    <th class="text-center">PHỤ TRÁCH</th>
+                                    <th class="text-center">THỜI GIAN</th>
+                                    <th class="text-center">THAO TÁC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenanceTableBody">
+                                {% for log in maintenance_logs %}{% if log.trang_thai == 'DANG_XU_LY' %}
+                                <tr class="maintenance-row"
+                                    data-search="{{ log.ma_phieu_bao_duong|lower }} {{ log.bien_so_xe_id|lower }} {{ log.bien_so_xe.ma_dong_xe.ten_dong_xe|lower }}"
+                                    data-priority="{{ log.muc_do_uu_tien }}">
+                                    <!-- PHIẾU / XE -->
+                                    <td class="text-start text-nowrap">
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-0.5" style="font-size: 0.74rem;">{{ log.ma_phieu_bao_duong }}</span>
+                                            <span class="vm-plate-badge">{{ log.bien_so_xe_id }}</span>
+                                        </div>
+                                        <div class="text-secondary fw-semibold small mt-1" style="font-size: 0.78rem;">
+                                            {{ log.bien_so_xe.ma_dong_xe.ten_dong_xe }} · <span class="font-monospace">{{ log.odo_luc_bao_duong }} km</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- HẠNG MỤC & TÌNH TRẠNG -->
+                                    <td class="text-start" style="max-width: 240px;">
+                                        <div class="d-flex align-items-center gap-1 text-nowrap mb-1">
+                                            {% if log.loai_bao_duong == 'DINH_KY' %}
+                                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Định kỳ</span>
+                                            {% elif log.loai_bao_duong == 'SUA_CHUA' %}
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Sửa chữa</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">{{ log.get_loai_bao_duong_display }}</span>
+                                            {% endif %}
+
+                                            {% if log.muc_do_uu_tien == 'KHAN_CAP' or log.muc_do_uu_tien == 'CAO' %}
+                                                <span class="badge bg-danger text-white px-2 py-0.5 fw-bold" style="font-size: 0.68rem;">{{ log.get_muc_do_uu_tien_display }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% with desc=log.tinh_trang_phat_hien|default:log.noi_dung %}
+                                        <div class="text-dark fw-medium text-truncate" style="font-size: 0.8rem;" title="{{ desc }}">
+                                            {{ desc }}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+
+                                    <!-- PHỤ TRÁCH -->
+                                    <td class="text-center small fw-semibold text-dark text-nowrap" style="font-size: 0.82rem;">
+                                        {{ log.ma_nhan_vien.ho_ten }}
+                                    </td>
+
+                                    <!-- THỜI GIAN -->
+                                    <td class="text-center text-nowrap">
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 font-monospace" style="font-size: 0.74rem;">
+                                            {% if log.bien_so_xe.so_ngay_bao_duong %}{{ log.bien_so_xe.so_ngay_bao_duong }} ngày{% else %}1 ngày{% endif %}
+                                        </span>
+                                        <div class="text-secondary font-monospace mt-0.5" style="font-size: 0.72rem;">{{ log.ngay_bao_duong|date:'d/m/Y' }}</div>
+                                    </td>
+
+                                    <!-- THAO TÁC -->
+                                    <td class="text-center text-nowrap">
+                                        {% if perms_vm.can_manage_maintenance %}
+                                        <button type="button" class="vm-action-pill-btn"
+                                                style="background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;"
+                                                onclick="openMaintenanceModal('{{ log.bien_so_xe_id|escapejs }}', '{{ log.odo_luc_bao_duong }}', '{{ log.ma_phieu_bao_duong|escapejs }}', '{{ log.bien_so_xe.ma_dong_xe.loai_dong_co }}')">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span>Cập nhật</span>
+                                        </button>
+                                        {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 text-nowrap">Chờ KT xử lý</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}{% endfor %}
+                                {% if count_bd == 0 %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-secondary fw-semibold">
+                                        <i class="fa-solid fa-circle-check text-success fs-5 d-block mb-1"></i>
+                                        Hiện không có phương tiện nào đang nằm xưởng.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr id="activeMaintEmptyRow" style="display: none;">
+                                    <td colspan="5" class="text-center py-4 text-secondary fw-semibold">
+                                        Không tìm thấy xe đang nằm xưởng khớp với từ khóa lọc.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CỘT PHỤ: CẢNH BÁO DỰ PHÒNG THU GỌN -->
+                {% if vehicles_warning %}
+                <div class="col-lg-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2" style="min-height: 32px;">
+                        <span class="fw-extrabold text-warning-emphasis text-uppercase small text-nowrap" style="letter-spacing: 0.4px;">
+                            <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Cảnh báo dự phòng (1.800–2.000 km)
+                        </span>
+                    </div>
+
+                    <div class="vm-warning-panel">
+                        <div class="vm-warning-list">
+                            {% for vw in vehicles_warning %}
+                            <div class="vm-warning-item">
+                                <div class="min-w-0">
+                                    <div class="d-flex align-items-center gap-1.5 text-nowrap">
+                                        <span class="vm-plate-badge" style="padding: 1px 6px; font-size: 0.78rem;">{{ vw.bien_so_xe }}</span>
+                                        <span class="badge {% if vw.odo_luy_ke_bao_duong >= 2000 %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning-emphasis{% endif %} font-monospace" style="font-size: 0.7rem;">
+                                            {{ vw.odo_luy_ke_bao_duong }} km
+                                        </span>
+                                    </div>
+                                    <small class="text-secondary fw-semibold d-block text-truncate" style="font-size: 0.74rem;" title="{{ vw.ma_dong_xe.ten_dong_xe }}">{{ vw.ma_dong_xe.ten_dong_xe }}</small>
+                                </div>
+                                {% if perms_vm.can_manage_maintenance %}
+                                <button type="button" class="vm-action-pill-btn"
+                                        style="height: 27px; padding: 0 8px; font-size: 0.72rem; background-color: #fefce8; color: #a16207; border: 1px solid #fde047;"
+                                        onclick="openMaintenanceModal('{{ vw.bien_so_xe|escapejs }}', '{{ vw.odo_hien_tai }}', '', '{{ vw.ma_dong_xe.loai_dong_co }}')">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>Lập phiếu</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <small class="text-secondary d-block mt-2 pt-1.5 border-top border-warning-subtle" style="font-size: 0.72rem;">
+                            <i class="fa-solid fa-circle-info me-1"></i>Tự động khóa xe khi chạm mốc 2.000 km sau trả chuyến.
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             SUB-TAB 2: LỊCH SỬ CHỨNG TỪ (BỘ LỌC ĐỘC LẬP 1 HÀNG + PHÂN TRANG 5 DÒNG)
+             =================================================================== -->
+        <div id="maint-subtab-history" style="display: none;">
+            <div class="d-flex align-items-center gap-2 flex-wrap flex-xl-nowrap mb-3">
+                <div class="input-group" style="flex: 1 1 200px; width: auto; min-width: 180px;">
+                    <span class="input-group-text bg-white border-end-0 text-secondary" style="border-color: #cbd5e1; border-radius: 10px 0 0 10px; height: 38px;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="historySearchInput" class="form-control border-start-0 font-monospace"
+                           style="border-color: #cbd5e1; border-radius: 0 10px 10px 0; height: 38px; font-size: 0.86rem;"
+                           placeholder="Biển số, mã phiếu, dòng xe..." onkeyup="filterMaintenanceHistoryAdvanced(true)">
+                </div>
+
+                <div style="width: 145px; flex-shrink: 0;">
+                    <input type="date" id="filterHistoryFromDate" class="form-control font-monospace"
+                           style="height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.84rem;"
+                           title="Từ ngày hoàn thành" onchange="filterMaintenanceHistoryAdvanced(true)">
+                </div>
+
+                <div style="width: 145px; flex-shrink: 0;">
+                    <input type="date" id="filterHistoryToDate" class="form-control font-monospace"
+                           style="height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.84rem;"
+                           title="Đến ngày hoàn thành" onchange="filterMaintenanceHistoryAdvanced(true)">
+                </div>
+
+                <select id="filterHistoryType" class="form-select text-dark fw-semibold"
+                        style="width: 175px; flex-shrink: 0; height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.86rem;"
+                        onchange="filterMaintenanceHistoryAdvanced(true)">
+                    <option value="">-- Loại phiếu --</option>
+                    <option value="DINH_KY">Bảo dưỡng định kỳ</option>
+                    <option value="SUA_CHUA">Sửa chữa phát sinh</option>
+                    <option value="KIEM_TRA">Kiểm tra an toàn</option>
+                </select>
+
+                <select id="filterHistoryTech" class="form-select text-dark fw-semibold"
+                        style="width: 170px; flex-shrink: 0; height: 38px; border-color: #cbd5e1; border-radius: 10px; font-size: 0.86rem;"
+                        onchange="filterMaintenanceHistoryAdvanced(true)">
+                    <option value="">-- Kỹ thuật viên --</option>
+                    {% for nv in nhan_viens %}
+                        <option value="{{ nv.ho_ten }}">{{ nv.ho_ten }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                        style="width: 38px; height: 38px; border-radius: 10px; border-color: #cbd5e1;" title="Đặt lại bộ lọc" onclick="resetHistoryFilter()">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <div class="vm-maint-table-wrap">
+                <table class="table table-hover align-middle text-center vm-maint-table" style="min-width: 920px;">
+                    <thead>
+                        <tr>
+                            <th class="text-center">MÃ PHIẾU</th>
+                            <th class="text-center">PHƯƠNG TIỆN</th>
+                            <th class="text-center">LOẠI PHIẾU</th>
+                            <th class="text-center">KỸ THUẬT VIÊN</th>
+                            <th class="text-center">TIẾP NHẬN → HOÀN THÀNH</th>
+                            <th class="text-center">CHI PHÍ</th>
+                            <th class="text-center">CHỨNG TỪ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vmHistoryRows">
+                        {% for log in maintenance_logs %}{% if log.trang_thai == 'HOAN_THANH' %}
+                        <tr data-search="{{ log.ma_phieu_bao_duong|lower }} {{ log.bien_so_xe_id|lower }} {{ log.bien_so_xe.ma_dong_xe.ten_dong_xe|lower }}"
+                            data-type="{{ log.loai_bao_duong }}"
+                            data-tech="{{ log.ma_nhan_vien.ho_ten }}"
+                            data-date="{{ log.ngay_hoan_thanh|default:log.ngay_bao_duong|date:'Y-m-d' }}"
+                            data-cost="{{ log.chi_phi|default:0 }}">
+                            <td class="text-center text-nowrap">
+                                <strong class="text-primary font-monospace">{{ log.ma_phieu_bao_duong }}</strong>
+                                <small class="d-block text-secondary font-monospace">ODO: {{ log.odo_hoan_thanh|default:log.odo_luc_bao_duong }} km</small>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <div><span class="vm-plate-badge">{{ log.bien_so_xe_id }}</span></div>
+                                <small class="text-secondary fw-semibold d-block mt-1">{{ log.bien_so_xe.ma_dong_xe.ten_dong_xe }}</small>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                {% if log.loai_bao_duong == 'DINH_KY' %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 fw-bold" style="font-size: 0.73rem;">Bảo dưỡng định kỳ</span>
+                                {% elif log.loai_bao_duong == 'SUA_CHUA' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold" style="font-size: 0.73rem;">Sửa chữa phát sinh</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 fw-bold" style="font-size: 0.73rem;">{{ log.get_loai_bao_duong_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center fw-semibold text-dark small text-nowrap">{{ log.ma_nhan_vien.ho_ten }}</td>
+                            <td class="text-center text-dark fw-semibold font-monospace small text-nowrap">
+                                {{ log.ngay_bao_duong|date:'d/m/Y' }} →
+                                <span class="text-success fw-bold">{{ log.ngay_hoan_thanh|default:log.ngay_bao_duong|date:'d/m/Y' }}</span>
+                            </td>
+                            <td class="text-center fw-bold text-dark font-monospace text-nowrap maint-cost-cell" data-raw-cost="{{ log.chi_phi|default:0 }}">
+                                {{ log.chi_phi|default:0|floatformat:0 }} đ
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <button type="button" class="vm-action-pill-btn"
+                                        style="background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1;"
+                                        onclick="openMaintenanceHistory('{{ log.ma_phieu_bao_duong|escapejs }}')">
+                                    <i class="fa-solid fa-file-lines text-primary"></i>
+                                    <span>Xem</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endif %}{% endfor %}
+                        <tr id="vmHistoryEmptyRow" style="display: none;">
+                            <td colspan="7" class="text-center py-4 text-secondary fw-semibold">
+                                Không tìm thấy phiếu bảo dưỡng nào phù hợp với điều kiện lọc.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- THANH PHÂN TRANG ĐỒNG BỘ MÀU VỚI TRANG KHÁCH HÀNG -->
+            <div class="vm-pagination-bar px-1">
+                <small class="text-secondary fw-semibold" id="vmHistoryPageInfo">Hiển thị 0 - 0 trên tổng 0 phiếu</small>
+                <nav aria-label="Phân trang lịch sử chứng từ">
+                    <ul class="pagination mb-0" id="vmHistoryPageButtons"></ul>
+                </nav>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script>
+// Dùng var để tương thích hoàn toàn khi HTMX chuyển trang qua lại
+var VM_HISTORY_PAGE_SIZE = 5;
+var vmHistoryCurrentPage = 1;
+
+function switchMaintSubTab(subName) {
+    const isHistory = subName === 'history';
+    const activePane = document.getElementById('maint-subtab-active');
+    const historyPane = document.getElementById('maint-subtab-history');
+    const btnActive = document.getElementById('subtab-btn-active');
+    const btnHistory = document.getElementById('subtab-btn-history');
+
+    if (activePane) activePane.style.display = isHistory ? 'none' : 'block';
+    if (historyPane) historyPane.style.display = isHistory ? 'block' : 'none';
+    if (btnActive) btnActive.classList.toggle('active', !isHistory);
+    if (btnHistory) btnHistory.classList.toggle('active', isHistory);
+}
+
+function filterActiveMaintenanceRows() {
+    const term = (document.getElementById('activeMaintSearchInput')?.value || '').toLowerCase().trim();
+    const prio = (document.getElementById('activeMaintPriorityFilter')?.value || '').trim();
+
+    const rows = Array.from(document.querySelectorAll('#maintenanceTableBody .maintenance-row'));
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const searchVal = row.dataset.search || '';
+        const rowPrio = row.dataset.priority || '';
+        const show = (!term || searchVal.includes(term)) && (!prio || rowPrio === prio);
+        row.style.display = show ? 'table-row' : 'none';
+        if (show) visibleCount++;
+    });
+
+    const emptyRow = document.getElementById('activeMaintEmptyRow');
+    if (emptyRow) {
+        emptyRow.style.display = (rows.length > 0 && visibleCount === 0) ? 'table-row' : 'none';
+    }
+}
+
+function formatVndNumber(val) {
+    return new Intl.NumberFormat('vi-VN').format(Math.round(Number(val || 0))) + ' đ';
+}
+
+function filterMaintenanceHistoryAdvanced(resetPage = false) {
+    if (resetPage) vmHistoryCurrentPage = 1;
+
+    const term = (document.getElementById("historySearchInput")?.value || "").toLowerCase().trim();
+    const fromDate = document.getElementById("filterHistoryFromDate")?.value || "";
+    const toDate = document.getElementById("filterHistoryToDate")?.value || "";
+    const mType = document.getElementById("filterHistoryType")?.value || "";
+    const tech = document.getElementById("filterHistoryTech")?.value || "";
+
+    const allRows = Array.from(document.querySelectorAll('#vmHistoryRows tr[data-type]'));
+    const matchedRows = [];
+    let totalCost = 0;
+
+    allRows.forEach(r => {
+        const matchesSearch = !term || (r.dataset.search || '').includes(term);
+        const matchesType = !mType || (r.dataset.type || '') === mType;
+        const matchesTech = !tech || (r.dataset.tech || '') === tech;
+        const rowDate = r.dataset.date || '';
+        const matchesDate = (!fromDate || rowDate >= fromDate) && (!toDate || rowDate <= toDate);
+
+        if (matchesSearch && matchesType && matchesTech && matchesDate) {
+            matchedRows.push(r);
+            totalCost += Number(r.dataset.cost || 0);
+        }
+        r.style.display = 'none';
+    });
+
+    const badgeDone = document.getElementById('vmSubtabDoneBadge');
+    const headerCost = document.getElementById('vmHeaderTotalCost');
+    if (badgeDone) badgeDone.textContent = matchedRows.length;
+    if (headerCost) headerCost.textContent = formatVndNumber(totalCost);
+
+    const totalItems = matchedRows.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / VM_HISTORY_PAGE_SIZE));
+    if (vmHistoryCurrentPage > totalPages) vmHistoryCurrentPage = totalPages;
+
+    const startIdx = (vmHistoryCurrentPage - 1) * VM_HISTORY_PAGE_SIZE;
+    const endIdx = Math.min(startIdx + VM_HISTORY_PAGE_SIZE, totalItems);
+
+    matchedRows.slice(startIdx, endIdx).forEach(r => {
+        r.style.display = 'table-row';
+    });
+
+    const emptyRow = document.getElementById('vmHistoryEmptyRow');
+    if (emptyRow) emptyRow.style.display = totalItems === 0 ? 'table-row' : 'none';
+
+    renderHistoryPagination(totalItems, startIdx, endIdx, totalPages);
+}
+
+function renderHistoryPagination(totalItems, startIdx, endIdx, totalPages) {
+    const infoEl = document.getElementById('vmHistoryPageInfo');
+    const ulEl = document.getElementById('vmHistoryPageButtons');
+    if (!infoEl || !ulEl) return;
+
+    infoEl.textContent = totalItems === 0
+        ? 'Không có dữ liệu hiển thị'
+        : `Hiển thị ${startIdx + 1}–${endIdx} trên tổng số ${totalItems} phiếu`;
+
+    ulEl.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const createPageItem = (label, page, disabled = false, active = false) => {
+        const li = document.createElement('li');
+        li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'page-link fw-bold';
+        btn.disabled = disabled;
+        btn.innerHTML = label;
+        btn.onclick = () => {
+            if (disabled || active) return;
+            vmHistoryCurrentPage = page;
+            filterMaintenanceHistoryAdvanced(false);
+        };
+
+        li.appendChild(btn);
+        return li;
+    };
+
+    ulEl.appendChild(createPageItem('&laquo;', vmHistoryCurrentPage - 1, vmHistoryCurrentPage === 1));
+    for (let p = 1; p <= totalPages; p++) {
+        ulEl.appendChild(createPageItem(String(p), p, false, p === vmHistoryCurrentPage));
+    }
+    ulEl.appendChild(createPageItem('&raquo;', vmHistoryCurrentPage + 1, vmHistoryCurrentPage === totalPages));
+}
+
+function resetHistoryFilter() {
+    ['historySearchInput', 'filterHistoryFromDate', 'filterHistoryToDate', 'filterHistoryType', 'filterHistoryTech'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = '';
+            if (el._flatpickr) el._flatpickr.clear();
+        }
+    });
+    filterMaintenanceHistoryAdvanced(true);
+}
+
+function initMaintenanceTab() {
+    document.querySelectorAll('.maint-cost-cell').forEach(cell => {
+        cell.textContent = formatVndNumber(cell.dataset.rawCost);
+    });
+    filterActiveMaintenanceRows();
+    filterMaintenanceHistoryAdvanced(true);
+}
+
+// Khởi chạy ngay lập tức (hoạt động cả khi load trực tiếp lẫn khi HTMX chuyển trang)
+initMaintenanceTab();
+</script>

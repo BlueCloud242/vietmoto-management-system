@@ -1,0 +1,436 @@
+{% extends 'reviews/base.html' %}
+
+{% block title %}Quản lý khách hàng | Vietmoto{% endblock %}
+{% block breadcrumb %}Quản lý khách hàng{% endblock %}
+
+{% block content %}
+<style>
+    .vm-customers {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #0f172a;
+    }
+
+    #kh-table-wrapper {
+        transition: opacity 0.12s ease;
+    }
+
+    /* AVATAR CHỮ CÁI ĐẠI DIỆN KHÁCH HÀNG */
+    .vm-cust-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.86rem;
+        flex-shrink: 0;
+        letter-spacing: 0.5px;
+    }
+    .avatar-tot { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .avatar-moi { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+    .avatar-dat-truoc { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+    .avatar-can-luu-y { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .avatar-blacklist { background: #ffe4e6; color: #be123c; border: 1px solid #fda4af; }
+
+    /* NHẤN MẠNH DÒNG KHÁCH BLACKLIST / CẦN LƯU Ý */
+    tr.row-kh-blacklist {
+        background-color: #fff1f2 !important;
+        box-shadow: inset 4px 0 0 #e11d48;
+    }
+    tr.row-kh-blacklist:hover {
+        background-color: #ffe4e6 !important;
+    }
+    tr.row-kh-warning {
+        background-color: #fffbeb !important;
+        box-shadow: inset 4px 0 0 #f59e0b;
+    }
+</style>
+
+<div class="vm-customers">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="page-title text-dark fw-bold mb-1">QUẢN LÝ KHÁCH HÀNG</h1>
+        </div>
+        {% if perms_vm.can_manage_customers %}
+        <a href="{% url 'khach_hang_create' %}" class="btn-brand shadow-sm">
+            <i class="fa-solid fa-user-plus me-1"></i> Thêm khách hàng
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card-custom mb-0">
+        <!-- THANH TÌM KIẾM -->
+        <form method="GET" action="{% url 'khach_hang_list' %}" hx-boost="false" class="row g-2 mb-3" id="kh-search-form">
+            <input type="hidden" name="uy_tin" id="input-uy-tin" value="{{ loc_uy_tin|default:'' }}">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-dark fw-bold" style="border-color: #cbd5e1; border-radius: 9px 0 0 9px;">
+                        <i class="fa-solid fa-magnifying-glass text-secondary"></i>
+                    </span>
+                    <input type="text"
+                           id="input-kh-search"
+                           name="q"
+                           value="{{ query|default:'' }}"
+                           class="form-control border-start-0 text-dark font-monospace"
+                           style="border-color: #cbd5e1; border-radius: 0 9px 9px 0;"
+                           placeholder="Tìm kiếm theo Mã KH, Họ tên, SĐT hoặc CCCD/Hộ chiếu...">
+                </div>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1 fw-bold shadow-sm" style="border-radius: 9px; height: 38px;">
+                    <i class="fa-solid fa-filter me-1"></i> Tìm kiếm
+                </button>
+                <button type="button" id="btn-reset-kh" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center"
+                        style="width: 40px; height: 38px; border-radius: 9px; border-color: #cbd5e1;" title="Đặt lại bộ lọc">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- THANH TABS SEGMENTED PILL (CHUYỂN TAB AJAX KHÔNG GIẬT TRANG) -->
+        <div class="vm-tabs-bar mb-3" id="kh-tab-container" hx-boost="false" role="tablist" aria-label="Lọc trạng thái uy tín khách hàng">
+            <button type="button"
+                    data-uytin=""
+                    class="vm-tab-item btn-kh-tab {% if not loc_uy_tin %}active{% endif %}">
+                <i class="fa-solid fa-users"></i>
+                <span>Tất cả</span>
+                <span class="vm-tab-badge" id="badge-kh-ALL">{{ counts_uy_tin.ALL|default:page_obj.paginator.count|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-uytin="TOT"
+                    class="vm-tab-item btn-kh-tab {% if loc_uy_tin == 'TOT' %}active{% endif %}">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Uy tín tốt</span>
+                <span class="vm-tab-badge" id="badge-kh-TOT">{{ counts_uy_tin.TOT|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-uytin="MOI"
+                    class="vm-tab-item btn-kh-tab {% if loc_uy_tin == 'MOI' %}active{% endif %}">
+                <i class="fa-solid fa-user-clock"></i>
+                <span>Khách mới</span>
+                <span class="vm-tab-badge" id="badge-kh-MOI">{{ counts_uy_tin.MOI|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-uytin="DAT_TRUOC"
+                    class="vm-tab-item btn-kh-tab {% if loc_uy_tin == 'DAT_TRUOC' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>Đặt trước</span>
+                <span class="vm-tab-badge" id="badge-kh-DAT_TRUOC">{{ counts_uy_tin.DAT_TRUOC|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-uytin="CAN_LUU_Y"
+                    class="vm-tab-item btn-kh-tab {% if loc_uy_tin == 'CAN_LUU_Y' %}active{% endif %}">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Cần lưu ý</span>
+                <span class="vm-tab-badge badge-warning" id="badge-kh-CAN_LUU_Y">{{ counts_uy_tin.CAN_LUU_Y|default:0 }}</span>
+            </button>
+            <button type="button"
+                    data-uytin="BLACKLIST"
+                    class="vm-tab-item btn-kh-tab {% if loc_uy_tin == 'BLACKLIST' %}active{% endif %}">
+                <i class="fa-solid fa-ban"></i>
+                <span>Blacklist</span>
+                <span class="vm-tab-badge badge-danger" id="badge-kh-BLACKLIST">{{ counts_uy_tin.BLACKLIST|default:0 }}</span>
+            </button>
+        </div>
+
+        <!-- BẢNG DỮ LIỆU VIỀN SẮC NÉT 2PX & CĂN GIỮA TOÀN BỘ -->
+        <div id="kh-table-wrapper" hx-boost="false">
+            <div class="table-responsive" style="border: 2px solid var(--border-strong, #94a3b8) !important; border-radius: 12px; overflow-x: auto;">
+                <table class="table table-hover align-middle text-center mb-0" style="border-collapse: collapse; table-layout: fixed; min-width: 1060px; width: 100%;">
+                    <colgroup>
+                        <col style="width: 90px;">   <!-- MÃ KH -->
+                        <col style="width: 24%;">    <!-- KHÁCH HÀNG -->
+                        <col style="width: 15%;">    <!-- SỐ ĐIỆN THOẠI -->
+                        <col style="width: 15%;">    <!-- CCCD / HỘ CHIẾU -->
+                        <col style="width: 12%;">    <!-- QUỐC TỊCH -->
+                        <col style="width: 14%;">    <!-- UY TÍN -->
+                        <col style="width: 205px;">  <!-- HÀNH ĐỘNG -->
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">MÃ KH</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">KHÁCH HÀNG</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">SỐ ĐIỆN THOẠI</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">CCCD / HỘ CHIẾU</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">QUỐC TỊCH</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">UY TÍN</th>
+                            <th class="py-3 px-2 text-center text-dark fw-bold text-nowrap" style="font-size: 0.82rem;">THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kh-table-body">
+                        {% for kh in khach_hangs %}
+                        <tr class="{% if kh.trang_thai_uy_tin == 'BLACKLIST' %}row-kh-blacklist{% elif kh.trang_thai_uy_tin == 'CAN_LUU_Y' %}row-kh-warning{% endif %}">
+                            <!-- MÃ KH -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                <span class="fw-bold text-dark font-monospace fs-6">{{ kh.ma_khach_hang }}</span>
+                            </td>
+
+                            <!-- KHÁCH HÀNG (CĂN GIỮA + TÁCH RÕ AVATAR VÀ TÊN) -->
+                            <td class="ps-3 pe-2 py-3 text-start">
+                                <div class="d-flex align-items-center" style="gap: 10px;">
+                                    <div class="vm-cust-avatar {% if kh.trang_thai_uy_tin == 'BLACKLIST' %}avatar-blacklist{% elif kh.trang_thai_uy_tin == 'CAN_LUU_Y' %}avatar-can-luu-y{% elif kh.trang_thai_uy_tin == 'MOI' %}avatar-moi{% elif kh.trang_thai_uy_tin == 'DAT_TRUOC' %}avatar-dat-truoc{% else %}avatar-tot{% endif %}">
+                                        {{ kh.ho_ten|slice:":1"|upper }}
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div class="fw-bold text-dark fs-6 text-truncate" title="{{ kh.ho_ten }}">{{ kh.ho_ten }}</div>
+                                        <div class="small text-secondary fw-semibold text-truncate" style="font-size: 0.76rem;">
+                                            {% if kh.so_lan_thue_xong > 0 %}
+                                                <span class="text-success fw-bold">Đã thuê {{ kh.so_lan_thue_xong }} lượt</span>
+                                            {% elif kh.so_hd_dang_mo > 0 %}
+                                                <span class="text-primary fw-bold">Đang thuê {{ kh.so_hd_dang_mo }} xe</span>
+                                            {% elif kh.so_don_dat_truoc > 0 %}
+                                                <span style="color: #6d28d9;">Có {{ kh.so_don_dat_truoc }} đơn đặt trước</span>
+                                            {% else %}
+                                                <span>Chưa phát sinh chuyến</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- SỐ ĐIỆN THOẠI -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                <span class="fw-semibold text-dark font-monospace">
+                                    <i class="fa-solid fa-phone text-secondary me-1" style="font-size: 0.72rem;"></i>{{ kh.so_dien_thoai }}
+                                </span>
+                            </td>
+
+                            <!-- CCCD / HỘ CHIẾU -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                <span class="text-secondary fw-semibold font-monospace">{{ kh.so_cccd|default:"Chưa cập nhật" }}</span>
+                            </td>
+
+                            <!-- QUỐC TỊCH (CHỮ BÌNH THƯỜNG KHÔNG KHUNG) -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                <span class="fw-semibold text-dark">{{ kh.quoc_tich|default:"Việt Nam" }}</span>
+                            </td>
+
+                            <!-- TRẠNG THÁI UY TÍN -->
+                            <td class="px-2 py-3 text-center text-nowrap">
+                                {% if kh.trang_thai_uy_tin == 'BLACKLIST' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid {{ kh.uy_tin_icon }} me-1"></i>{{ kh.uy_tin_label }}
+                                    </span>
+                                {% elif kh.trang_thai_uy_tin == 'CAN_LUU_Y' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid {{ kh.uy_tin_icon }} me-1"></i>{{ kh.uy_tin_label }}
+                                    </span>
+                                {% elif kh.trang_thai_uy_tin == 'MOI' %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid {{ kh.uy_tin_icon }} me-1"></i>{{ kh.uy_tin_label }}
+                                    </span>
+                                {% elif kh.trang_thai_uy_tin == 'DAT_TRUOC' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid {{ kh.uy_tin_icon }} me-1"></i>{{ kh.uy_tin_label }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-bold" style="font-size: 0.78rem;">
+                                        <i class="fa-solid {{ kh.uy_tin_icon }} me-1"></i>{{ kh.uy_tin_label }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- HÀNH ĐỘNG (TÁCH RỜI 2 NÚT BẰNG GAP 8PX) -->
+                            <td class="px-2 py-3 text-center">
+                                <div class="d-inline-flex justify-content-center align-items-center" style="gap: 8px;">
+                                    <a href="{% url 'khach_hang_history' kh.ma_khach_hang %}"
+                                       class="btn btn-sm d-inline-flex align-items-center justify-content-center gap-1 px-2.5 fw-bold shadow-sm"
+                                       style="height: 31px; white-space: nowrap; font-size: 0.79rem; background-color: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; border-radius: 7px;"
+                                       title="Xem lịch sử hợp đồng">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span>Lịch sử</span>
+                                    </a>
+                                    {% if perms_vm.can_manage_customers %}
+                                    <a href="{% url 'khach_hang_update' kh.ma_khach_hang %}"
+                                       class="btn btn-sm d-inline-flex align-items-center justify-content-center gap-1 px-2.5 fw-bold shadow-sm"
+                                       style="height: 31px; white-space: nowrap; font-size: 0.79rem; background-color: #fff1eb; color: var(--brand-primary, #f44905); border: 1px solid #fed7aa; border-radius: 7px;"
+                                       title="Cập nhật thông tin khách">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Chỉnh sửa</span>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-dark fw-bold">
+                                <i class="fa-regular fa-folder-open fs-2 mb-2 d-block text-secondary"></i>
+                                Không tìm thấy hồ sơ khách hàng nào phù hợp với điều kiện tìm kiếm.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- THANH PHÂN TRANG -->
+            <div id="kh-pagination-bar">
+                {% if page_obj.has_other_pages %}
+                <div class="d-flex justify-content-between align-items-center pt-3 px-1 bg-white flex-wrap gap-2">
+                    <div class="small text-secondary fw-semibold">
+                        Hiển thị <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> trên tổng số <strong>{{ page_obj.paginator.count }}</strong> khách hàng
+                    </div>
+                    <nav aria-label="Phân trang khách hàng">
+                        <ul class="pagination mb-0">
+                            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                                <button type="button" class="page-link fw-bold page-ajax"
+                                        data-url="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&uy_tin={{ loc_uy_tin|urlencode }}{% endif %}">&laquo;</button>
+                            </li>
+
+                            {% for num in page_obj.paginator.page_range %}
+                                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                    <button type="button" class="page-link fw-bold page-ajax"
+                                            data-url="?page={{ num }}&q={{ query|urlencode }}&uy_tin={{ loc_uy_tin|urlencode }}">{{ num }}</button>
+                                </li>
+                            {% endfor %}
+
+                            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                                <button type="button" class="page-link fw-bold page-ajax"
+                                        data-url="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&uy_tin={{ loc_uy_tin|urlencode }}{% endif %}">&raquo;</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const baseKhUrl = "{% url 'khach_hang_list' %}";
+    let abortCtrl = null;
+    const pageCache = new Map();
+
+    function setActiveKhTab(uyTin) {
+        const inputUyTin = document.getElementById('input-uy-tin');
+        if (inputUyTin) inputUyTin.value = uyTin;
+
+        document.querySelectorAll('#kh-tab-container .btn-kh-tab').forEach(btn => {
+            btn.classList.toggle('active', (btn.getAttribute('data-uytin') || '') === uyTin);
+        });
+    }
+
+    function applyKhachHangFragment(html, url, pushHistory) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const newTbody = doc.getElementById('kh-table-body');
+        const newPag = doc.getElementById('kh-pagination-bar');
+        const curTbody = document.getElementById('kh-table-body');
+        const curPag = document.getElementById('kh-pagination-bar');
+        const wrapper = document.getElementById('kh-table-wrapper');
+
+        if (newTbody && curTbody) curTbody.innerHTML = newTbody.innerHTML;
+        if (newPag && curPag) curPag.innerHTML = newPag.innerHTML;
+
+        doc.querySelectorAll('#kh-tab-container .vm-tab-badge').forEach(newBadge => {
+            const curBadge = document.getElementById(newBadge.id);
+            if (curBadge) curBadge.textContent = newBadge.textContent;
+        });
+
+        if (wrapper) {
+            wrapper.style.opacity = '1';
+            requestAnimationFrame(() => { wrapper.style.minHeight = ''; });
+        }
+        if (pushHistory) window.history.pushState({}, '', url);
+    }
+
+    function loadKhachHangPage(url, pushHistory = true) {
+        if (!url) return;
+        const wrapper = document.getElementById('kh-table-wrapper');
+
+        if (pageCache.has(url)) {
+            applyKhachHangFragment(pageCache.get(url), url, pushHistory);
+            return;
+        }
+
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = new AbortController();
+
+        if (wrapper) {
+            wrapper.style.minHeight = wrapper.offsetHeight + 'px';
+            wrapper.style.opacity = '0.72';
+        }
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: abortCtrl.signal
+        })
+        .then(res => res.text())
+        .then(html => {
+            pageCache.set(url, html);
+            applyKhachHangFragment(html, url, pushHistory);
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            if (wrapper) {
+                wrapper.style.opacity = '1';
+                wrapper.style.minHeight = '';
+            }
+        });
+    }
+
+    if (!window.__vmKhachHangPaginateBound) {
+        window.__vmKhachHangPaginateBound = true;
+
+        document.addEventListener('click', function (e) {
+            const tabBtn = e.target.closest('#kh-tab-container .btn-kh-tab');
+            if (tabBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const uyTin = tabBtn.getAttribute('data-uytin') || '';
+                const queryVal = (document.getElementById('input-kh-search')?.value || '').trim();
+                setActiveKhTab(uyTin);
+                const url = `${baseKhUrl}?uy_tin=${encodeURIComponent(uyTin)}&q=${encodeURIComponent(queryVal)}`;
+                loadKhachHangPage(url);
+                return;
+            }
+
+            const resetBtn = e.target.closest('#btn-reset-kh');
+            if (resetBtn) {
+                e.preventDefault();
+                const searchEl = document.getElementById('input-kh-search');
+                if (searchEl) searchEl.value = '';
+                setActiveKhTab('');
+                loadKhachHangPage(baseKhUrl);
+                return;
+            }
+
+            const btn = e.target.closest('#kh-table-wrapper button.page-ajax');
+            if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (btn.closest('.page-item.disabled') || btn.closest('.page-item.active')) return;
+                loadKhachHangPage(btn.getAttribute('data-url'));
+            }
+        });
+
+        document.addEventListener('submit', function (e) {
+            if (e.target && e.target.id === 'kh-search-form') {
+                e.preventDefault();
+                e.stopPropagation();
+                const uyTin = document.getElementById('input-uy-tin')?.value || '';
+                const queryVal = (document.getElementById('input-kh-search')?.value || '').trim();
+                const url = `${baseKhUrl}?uy_tin=${encodeURIComponent(uyTin)}&q=${encodeURIComponent(queryVal)}`;
+                loadKhachHangPage(url);
+            }
+        });
+
+        window.addEventListener('popstate', function () {
+            if (!document.getElementById('kh-tab-container')) return;
+            const params = new URLSearchParams(window.location.search);
+            const uyTin = params.get('uy_tin') || '';
+            const q = params.get('q') || '';
+            const searchEl = document.getElementById('input-kh-search');
+            if (searchEl) searchEl.value = q;
+            setActiveKhTab(uyTin);
+            loadKhachHangPage(window.location.href, false);
+        });
+    }
+})();
+</script>
+{% endblock %}
