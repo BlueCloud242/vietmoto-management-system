@@ -267,14 +267,41 @@ http://127.0.0.1:8000/
 
 ## 9. Giao diện hệ thống (Screenshots)
 
-Ảnh giao diện thực tế của Vietmoto sẽ được bổ sung tại đây để giới thiệu các màn hình nghiệp vụ chính:
+Các hình ảnh dưới đây minh họa những màn hình nghiệp vụ chính của hệ thống Vietmoto.
 
-- Dashboard điều hành.
-- Quản lý và điều phối đội xe.
-- Lịch đặt xe (Fleet Calendar).
-- Quản lý hợp đồng và biên bản bàn giao QR.
-- Hồ sơ khách hàng.
-- Bảo dưỡng và báo cáo thống kê.
+9.1. Tổng quan vận hành 
+
+![Tổng quan vận hành](docs/images/tong-quan.png)
+
+9.2. Quản lý đội xe
+
+Danh sách phương tiện
+
+![Danh sách phuong tiện](docs/images/danh-sach-xe.png)
+
+Lịch điều phối đội xe 
+
+![Lịch điều phối](docs/images/lich-dieu-phoi.png)
+
+9.3. Quản lý bảo dưỡng
+
+![Quản lý bảo dưỡng](docs/images/bao-duong.png)
+
+9.4. Quản lý khách hàng
+
+![Quản lý khách hàng](docs/images/khach-hang.png)
+
+9.5. Quản lý đặt xe trước
+
+![Quản lý đặt xe](docs/images/dat-xe.png)
+
+9.6. Quản lý hợp đồng
+
+![Quản lý hợp đồng](docs/images/hop-dong.png)
+
+9.7. Báo cáo và thống kê
+
+![Báo cáo thống kê](docs/images/thong-ke.png)
 
 ## 10. Repository
 
