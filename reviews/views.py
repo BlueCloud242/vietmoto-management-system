@@ -729,6 +729,9 @@ def hop_dong_gia_han(request, pk):
                 f"Cước thu thêm: {tien_phat_sinh:,.0f}đ{msg_coc}."
             )
             return redirect('hop_dong_list')
+        else:
+            first_err = next(iter(form.errors.values()))[0]
+            messages.error(request, first_err)
     else:
         form = GiaHanHopDongForm(hop_dong)
 
@@ -986,11 +989,16 @@ def bien_ban_tra_xe(request, hop_dong_id):
         khau_tru_xang = 0 if is_xe_dien else _safe_int(request.POST.get('khau_tru_xang'), default=0)
         khau_tru_phu_kien = _safe_int(request.POST.get('khau_tru_phu_kien'), default=0)
         khau_tru_khac = _safe_int(request.POST.get('khau_tru_khac'), default=0)
+        ly_do_khau_tru_khac = request.POST.get('ly_do_khau_tru_khac', '').strip()
         ghi_chu = request.POST.get('ghi_chu', '').strip()
         tinh_trang = request.POST.get('tinh_trang_ngoai_quan', '').strip()
         hinh_thuc_hoan = request.POST.get('hinh_thuc_hoan_coc', 'TIEN_MAT')
         if hinh_thuc_hoan not in ['TIEN_MAT', 'CHUYEN_KHOAN', 'THE']:
             hinh_thuc_hoan = 'TIEN_MAT'
+
+        if khau_tru_khac > 0 and not ly_do_khau_tru_khac:
+            messages.error(request, "Vui lòng nhập lý do phát sinh khoản chi phí khác!")
+            return redirect(request.path)
 
         # Lấy danh sách file ảnh tải lên lúc trả xe
         uploaded_files = request.FILES.getlist('hinh_anh_xe')
@@ -1006,6 +1014,7 @@ def bien_ban_tra_xe(request, hop_dong_id):
 
         ma_bb_tra = f"BBT-{hop_dong.ma_hop_dong}"
         ghi_chu_nl = f"Pin lúc trả: {nang_luong_tra}" if is_xe_dien else f"Bù xăng: {khau_tru_xang:,.0f}đ"
+        chi_tiet_khac = f"{khau_tru_khac:,.0f}đ ({ly_do_khau_tru_khac})" if khau_tru_khac > 0 else "0đ"
 
         with transaction.atomic():
             defaults_bb = {
@@ -1018,7 +1027,7 @@ def bien_ban_tra_xe(request, hop_dong_id):
                 'phu_phi_tre_gio': phu_phi_tre,
                 'tien_hoan_coc': tien_hoan_coc,
                 'loai_bien_ban': 'TRA',
-                'ghi_chu': f"[{ghi_chu_nl}, Phụ kiện: {khau_tru_phu_kien:,.0f}đ, Khác: {khau_tru_khac:,.0f}đ] - {ghi_chu}".strip(" - "),
+                'ghi_chu': f"[{ghi_chu_nl}, Phụ kiện: {khau_tru_phu_kien:,.0f}đ, Khác: {chi_tiet_khac}] - {ghi_chu}".strip(" - "),
                 'ma_token_tra_cuu': uuid.uuid4().hex[:16],
             }
             if uploaded_files:
@@ -2021,7 +2030,12 @@ def booking_list(request):
     }
     return render(request, 'reviews/list2.html', context)
 
-
+@login_required
+@permission_required_vm(
+    'can_manage_bookings',
+    redirect_url='booking_list',
+    deny_message='Kỹ thuật viên chỉ có quyền xem danh sách đặt xe, không thể tạo đơn mới!'
+)
 @login_required
 def booking_create(request):
     """Trang riêng tạo mới Đơn đặt xe trước"""
