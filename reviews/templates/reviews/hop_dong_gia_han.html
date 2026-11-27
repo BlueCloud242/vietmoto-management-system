@@ -3,6 +3,40 @@
 {% block title %}Gia Hạn Hợp Đồng: {{ hop_dong.ma_hop_dong }} - Vietmoto{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .input-locked-style,
+    .input-locked-style:focus,
+    .input-locked-style:hover {
+        background-color: #e2e8f0 !important;
+        color: #94a3b8 !important;
+        border-color: #cbd5e1 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+        user-select: none !important;
+        box-shadow: none !important;
+    }
+
+    .btn-quick-day {
+        border-radius: 8px;
+        border: 1.5px solid #cbd5e1;
+        background-color: #ffffff;
+        color: #334155;
+        transition: all 0.15s ease-in-out;
+    }
+    .btn-quick-day:hover:not(:disabled) {
+        border-color: var(--brand-primary, #f44905);
+        background-color: #fffaf5;
+        color: var(--brand-primary, #f44905);
+    }
+    .btn-quick-day.active-quick {
+        background-color: var(--brand-primary, #f44905) !important;
+        border-color: var(--brand-primary, #f44905) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(244, 73, 5, 0.25);
+    }
+</style>
+
 <div class="mb-4">
     <a href="{% url 'hop_dong_list' %}" class="text-decoration-none text-secondary fw-semibold small d-inline-flex align-items-center gap-1">
         <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách hợp đồng
@@ -40,32 +74,43 @@
 
             <form method="POST" hx-boost="false">
                 {% csrf_token %}
+                <input type="hidden" name="so_ngay_gia_han_nhanh" id="id_so_ngay_gia_han_nhanh" value="">
+
                 <div class="row g-3">
                     <!-- HÀNG 1: CHỌN NHANH THỜI GIAN GIA HẠN -->
                     <div class="col-12">
-                        <label class="form-label fw-bold text-dark small d-block mb-1">
-                            Chọn nhanh số ngày muốn gia hạn thêm:
-                        </label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold text-dark small mb-0">
+                                Chọn nhanh số ngày muốn gia hạn thêm:
+                            </label>
+                            <button type="button" id="btn-clear-quick-day" class="btn btn-link btn-sm text-decoration-none p-0 d-none fw-semibold" style="font-size: 0.8rem; color: var(--brand-primary, #f44905);">
+                                <i class="fa-solid fa-rotate-left"></i> Bỏ chọn nhanh (Chọn ngày trên lịch)
+                            </button>
+                        </div>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm fw-bold px-3 btn-quick-day" data-days="1" style="border-radius: 8px; border-color: #cbd5e1;" {% if is_extension_locked %}disabled{% endif %}>+ 1 Ngày</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm fw-bold px-3 btn-quick-day" data-days="2" style="border-radius: 8px; border-color: #cbd5e1;" {% if is_extension_locked %}disabled{% endif %}>+ 2 Ngày</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm fw-bold px-3 btn-quick-day" data-days="3" style="border-radius: 8px; border-color: #cbd5e1;" {% if is_extension_locked %}disabled{% endif %}>+ 3 Ngày</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm fw-bold px-3 btn-quick-day" data-days="7" style="border-radius: 8px; border-color: #cbd5e1;" {% if is_extension_locked %}disabled{% endif %}>+ 1 Tuần (7 Ngày)</button>
+                            <button type="button" class="btn btn-sm fw-bold px-3 btn-quick-day" data-days="1" {% if is_extension_locked %}disabled{% endif %}>+ 1 Ngày</button>
+                            <button type="button" class="btn btn-sm fw-bold px-3 btn-quick-day" data-days="2" {% if is_extension_locked %}disabled{% endif %}>+ 2 Ngày</button>
+                            <button type="button" class="btn btn-sm fw-bold px-3 btn-quick-day" data-days="3" {% if is_extension_locked %}disabled{% endif %}>+ 3 Ngày</button>
+                            <button type="button" class="btn btn-sm fw-bold px-3 btn-quick-day" data-days="7" {% if is_extension_locked %}disabled{% endif %}>+ 1 Tuần (7 Ngày)</button>
                         </div>
                     </div>
 
-                    <!-- HÀNG 2: THỜI ĐIỂM KẾT THÚC MỚI & HÌNH THỨC THANH TOÁN -->
+                    <!-- HÀNG 2: NGÀY KẾT THÚC MỚI & HÌNH THỨC THANH TOÁN -->
                     <div class="col-md-6">
-                        <label class="form-label fw-bold text-dark small">
-                            Thời điểm kết thúc mới (Giờ &amp; Ngày) <span class="text-danger">*</span>
+                        <label class="form-label fw-bold text-dark small" id="lbl-ngay-ket-thuc-moi">
+                            Ngày kết thúc mới (Giữ nguyên giờ trả {{ hop_dong.ngay_ket_thuc_du_kien|date:"H:i" }}) <span class="text-danger" id="star-required">*</span>
                         </label>
-                        <input type="datetime-local"
+                        <input type="text"
                                name="ngay_ket_thuc_moi"
                                id="id_ngay_ket_thuc_moi"
                                class="form-control text-dark fw-bold font-monospace"
                                style="border-color: #cbd5e1;"
+                               placeholder="dd/mm/yyyy"
                                {% if is_extension_locked %}disabled{% endif %}
                                required>
+                        <small id="hint-thoi-diem-tra-moi" class="text-success d-block mt-1 fw-semibold" style="font-size: 0.78rem;">
+                            Thời điểm trả xe mới: <span class="font-monospace" id="lbl-exact-return-time">Chưa xác định</span>
+                        </small>
                     </div>
 
                     <div class="col-md-6">
@@ -114,7 +159,6 @@
 
     <!-- CỘT PHẢI (4 PHẦN): ĐỐI SOÁT HỢP ĐỒNG & LỊCH XE TIẾP THEO -->
     <div class="col-lg-4">
-        <!-- 1. THẺ ĐỐI SOÁT TÀI CHÍNH HỢP ĐỒNG -->
         <div class="card-custom mb-4" style="background-color: #fffaf5; border-color: #fed7aa !important;">
             <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
                 <i class="fa-solid fa-receipt text-success"></i>
@@ -144,7 +188,6 @@
             </div>
         </div>
 
-        <!-- 2. THẺ KIỂM TRA LỊCH XE TIẾP THEO -->
         <div class="card-custom" style="background-color: #f8fafc;">
             <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.88rem;">
                 <i class="fa-solid fa-calendar-check text-primary"></i>
@@ -181,28 +224,67 @@
 <script>
 (function () {
     const hanTraGoc = new Date("{{ hop_dong.ngay_ket_thuc_du_kien|date:'c' }}");
+    const gioTraStr = "{{ hop_dong.ngay_ket_thuc_du_kien|date:'H:i' }}";
     const donGia = Number("{{ don_gia|default:0 }}") || 0;
     const tongThueGoc = Number("{{ hop_dong.tong_tien_thanh_toan|default:0 }}") || 0;
+    const isSystemLocked = "{{ is_extension_locked|yesno:'true,false' }}" === "true";
 
     const inputNgayMoi = document.getElementById('id_ngay_ket_thuc_moi');
+    const inputQuickDays = document.getElementById('id_so_ngay_gia_han_nhanh');
+    const starRequired = document.getElementById('star-required');
+    const lblExactReturnTime = document.getElementById('lbl-exact-return-time');
+    const btnClearQuickDay = document.getElementById('btn-clear-quick-day');
+    const quickButtons = document.querySelectorAll('.btn-quick-day');
+
     const lblSoNgayThem = document.getElementById('lbl-so-ngay-them');
     const lblCuocThuThem = document.getElementById('lbl-cuoc-thu-them');
     const lblSideCuocThem = document.getElementById('lbl-side-cuocthem');
     const lblSideTongMoi = document.getElementById('lbl-side-tongmoi');
 
-    function tinhToanGiaHan() {
-        if (!inputNgayMoi || !inputNgayMoi.value) {
-            lblSoNgayThem.innerText = '0';
-            lblCuocThuThem.innerText = '0';
-            lblSideCuocThem.innerText = '+0 đ';
-            lblSideTongMoi.innerText = tongThueGoc.toLocaleString('vi-VN') + ' đ';
-            return;
-        }
+    function formatDateVN(d) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${gioTraStr} - ${dd}/${mm}/${yyyy}`;
+    }
 
-        const ngayMoi = new Date(inputNgayMoi.value);
-        if (ngayMoi > hanTraGoc) {
-            const diffHours = (ngayMoi.getTime() - hanTraGoc.getTime()) / (1000 * 60 * 60);
-            const soNgay = Math.max(1, Math.ceil(diffHours / 24));
+    function getAllDateInputs() {
+        const inputs = [];
+        if (inputNgayMoi) {
+            inputs.push(inputNgayMoi);
+            if (inputNgayMoi._flatpickr && inputNgayMoi._flatpickr.altInput) {
+                inputs.push(inputNgayMoi._flatpickr.altInput);
+            }
+        }
+        return inputs;
+    }
+
+    function setDateInputLocked(locked) {
+        const inputs = getAllDateInputs();
+        inputs.forEach(el => {
+            el.disabled = locked;
+            el.readOnly = locked;
+            if (locked) {
+                el.classList.add('input-locked-style');
+                el.setAttribute('tabindex', '-1');
+            } else {
+                el.classList.remove('input-locked-style');
+                el.removeAttribute('tabindex');
+            }
+        });
+
+        if (locked && inputNgayMoi) {
+            if (inputNgayMoi._flatpickr) {
+                inputNgayMoi._flatpickr.close();
+                inputNgayMoi._flatpickr.clear();
+            } else {
+                inputNgayMoi.value = '';
+            }
+        }
+    }
+
+    function capNhatHienThiTien(soNgay, targetDate) {
+        if (soNgay > 0 && targetDate) {
             const cuocThem = soNgay * donGia;
             const tongMoi = tongThueGoc + cuocThem;
 
@@ -210,33 +292,108 @@
             lblCuocThuThem.innerText = cuocThem.toLocaleString('vi-VN');
             lblSideCuocThem.innerText = '+' + cuocThem.toLocaleString('vi-VN') + ' đ';
             lblSideTongMoi.innerText = tongMoi.toLocaleString('vi-VN') + ' đ';
+            if (lblExactReturnTime) lblExactReturnTime.innerText = formatDateVN(targetDate);
         } else {
             lblSoNgayThem.innerText = '0';
             lblCuocThuThem.innerText = '0';
             lblSideCuocThem.innerText = '+0 đ';
             lblSideTongMoi.innerText = tongThueGoc.toLocaleString('vi-VN') + ' đ';
+            if (lblExactReturnTime) lblExactReturnTime.innerText = 'Chưa xác định';
         }
     }
 
-    document.querySelectorAll('.btn-quick-day').forEach(btn => {
+    function tinhToanGiaHan() {
+        const quickDays = parseInt(inputQuickDays.value, 10);
+        if (quickDays > 0) {
+            const target = new Date(hanTraGoc.getTime() + quickDays * 86400000);
+            capNhatHienThiTien(quickDays, target);
+            return;
+        }
+
+        if (!inputNgayMoi || !inputNgayMoi.value) {
+            capNhatHienThiTien(0, null);
+            return;
+        }
+
+        // inputNgayMoi.value có dạng YYYY-MM-DD, ghép giờ trả gốc vào
+        const [y, m, d] = inputNgayMoi.value.split('-').map(Number);
+        const ngayMoi = new Date(y, m - 1, d, hanTraGoc.getHours(), hanTraGoc.getMinutes(), 0);
+        if (ngayMoi > hanTraGoc) {
+            const soNgay = Math.max(1, Math.round((ngayMoi.getTime() - hanTraGoc.getTime()) / 86400000));
+            capNhatHienThiTien(soNgay, ngayMoi);
+        } else {
+            capNhatHienThiTien(0, null);
+        }
+    }
+
+    function boChonNhanh() {
+        inputQuickDays.value = '';
+        quickButtons.forEach(b => b.classList.remove('active-quick'));
+
+        if (!isSystemLocked) {
+            setDateInputLocked(false);
+            inputNgayMoi.required = true;
+        }
+        starRequired.classList.remove('d-none');
+        btnClearQuickDay.classList.add('d-none');
+        tinhToanGiaHan();
+    }
+
+    quickButtons.forEach(btn => {
         btn.addEventListener('click', function () {
-            const days = parseInt(this.dataset.days, 10);
-            const targetDate = new Date(hanTraGoc.getTime() + days * 24 * 60 * 60 * 1000);
+            const days = this.dataset.days;
+            if (inputQuickDays.value === days) {
+                boChonNhanh();
+                return;
+            }
 
-            const year = targetDate.getFullYear();
-            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-            const day = String(targetDate.getDate()).padStart(2, '0');
-            const hours = String(targetDate.getHours()).padStart(2, '0');
-            const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+            quickButtons.forEach(b => b.classList.remove('active-quick'));
+            this.classList.add('active-quick');
 
-            inputNgayMoi.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            inputQuickDays.value = days;
+            inputNgayMoi.required = false;
+            setDateInputLocked(true);
+
+            starRequired.classList.add('d-none');
+            btnClearQuickDay.classList.remove('d-none');
+
             tinhToanGiaHan();
         });
     });
 
-    if (inputNgayMoi) {
-        inputNgayMoi.addEventListener('change', tinhToanGiaHan);
-        inputNgayMoi.addEventListener('input', tinhToanGiaHan);
+    if (btnClearQuickDay) {
+        btnClearQuickDay.addEventListener('click', boChonNhanh);
+    }
+
+    const setupFlatpickr = () => {
+        if (!window.flatpickr || !inputNgayMoi || inputNgayMoi._flatpickr) return;
+        const minReturnDate = new Date(hanTraGoc.getTime() + 86400000);
+        window.flatpickr(inputNgayMoi, {
+            enableTime: false,
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            minDate: minReturnDate,
+            locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.vn) || 'default',
+            allowInput: false,
+            onChange: tinhToanGiaHan
+        });
+        if (isSystemLocked) setDateInputLocked(true);
+    };
+
+    if (window.flatpickr) {
+        setupFlatpickr();
+    } else {
+        const fpScript = document.createElement('script');
+        fpScript.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+        fpScript.onload = () => {
+            const vnScript = document.createElement('script');
+            vnScript.src = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js';
+            vnScript.onload = setupFlatpickr;
+            vnScript.onerror = setupFlatpickr;
+            document.head.appendChild(vnScript);
+        };
+        document.head.appendChild(fpScript);
     }
 
     tinhToanGiaHan();
