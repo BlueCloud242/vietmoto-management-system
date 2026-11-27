@@ -131,15 +131,18 @@
           <!-- Hàng 3: Thời gian -->
           <div class="col-md-6">
             <label class="form-label fw-bold text-dark small">
-              Thời điểm hẹn nhận xe <span class="text-danger">*</span>
+              Thời điểm hẹn nhận xe (Ngày &amp; Giờ) <span class="text-danger">*</span>
             </label>
             {{ booking_form.thoi_gian_hen_nhan }}
           </div>
           <div class="col-md-6">
             <label class="form-label fw-bold text-dark small">
-              Thời điểm dự kiến trả xe <span class="text-danger">*</span>
+              Ngày dự kiến trả xe <span class="text-danger">*</span>
             </label>
             {{ booking_form.thoi_gian_du_kien_tra }}
+            <small class="text-success d-block mt-1 fw-semibold" style="font-size: 0.78rem;">
+              Giờ trả xe dự kiến: <span class="font-monospace" id="lbl-bk-exact-return">Theo giờ hẹn nhận</span>
+            </small>
           </div>
 
           <!-- Hàng 4: Cọc cố định 100k | Địa điểm -->
@@ -453,12 +456,38 @@
     if (inputCocGiuCho) inputCocGiuCho.value = FIXED_DEPOSIT;
     if (chkDaThanhToanCoc) chkDaThanhToanCoc.value = 'on';
 
+    // Ghép giờ hẹn nhận xe vào ngày dự kiến trả xe (YYYY-MM-DD) để tính đủ ngày tròn 24h
+    const getFullBookingEndDate = () => {
+      if (!start.value || !end.value) return null;
+      const a = new Date(start.value);
+      if (!Number.isFinite(a.getTime())) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(end.value)) {
+        const [y, m, d] = end.value.split('-').map(Number);
+        return new Date(y, m - 1, d, a.getHours(), a.getMinutes(), 0);
+      }
+      return new Date(end.value);
+    };
+
     const updateCreatePreview = () => {
       if (inputCocGiuCho) inputCocGiuCho.value = FIXED_DEPOSIT;
 
       const a = start.value ? new Date(start.value) : null;
-      const b = end.value ? new Date(end.value) : null;
+      const b = getFullBookingEndDate();
       const validRange = a && b && Number.isFinite(a.getTime()) && Number.isFinite(b.getTime()) && b > a;
+
+      const exactReturnEl = document.getElementById('lbl-bk-exact-return');
+      if (exactReturnEl) {
+        if (validRange) {
+          const hh = String(b.getHours()).padStart(2, '0');
+          const min = String(b.getMinutes()).padStart(2, '0');
+          const dd = String(b.getDate()).padStart(2, '0');
+          const mm = String(b.getMonth() + 1).padStart(2, '0');
+          exactReturnEl.textContent = `${hh}:${min} - ${dd}/${mm}/${b.getFullYear()}`;
+        } else {
+          exactReturnEl.textContent = 'Theo giờ hẹn nhận';
+        }
+      }
 
       Array.from(vehicle.options).forEach(opt => {
         if (!opt.value) return;
@@ -514,7 +543,7 @@
 
       let days = 0;
       if (validRange) {
-        days = Math.max(1, Math.ceil((b - a) / 86400000));
+        days = Math.max(1, Math.round((b - a) / 86400000));
         if (scheduleHint) scheduleHint.textContent = `Thời lượng thuê dự kiến: ${days} ngày (đã áp dụng 60p đệm kỹ thuật).`;
       } else if (scheduleHint) {
         scheduleHint.textContent = 'Chỉ hiển thị xe trạng thái Trống; chọn giờ nhận/trả để kiểm tra trùng lịch (đã tính 60p đệm).';
@@ -536,21 +565,44 @@
 
     const setupFlatpickr = () => {
       if (!window.flatpickr) return;
-      [start, end].forEach(el => {
-        if (el._flatpickr) return;
-        el.type = 'text';
-        window.flatpickr(el, {
+      const vnLocale = (window.flatpickr.l10ns && window.flatpickr.l10ns.vn) || 'default';
+
+      if (end && !end._flatpickr) {
+        if (end.value && end.value.includes('T')) {
+          end.value = end.value.split('T')[0];
+        }
+        end.type = 'text';
+        window.flatpickr(end, {
+          enableTime: false,
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd/m/Y',
+          locale: vnLocale,
+          allowInput: false,
+          onChange: updateCreatePreview
+        });
+      }
+
+      if (start && !start._flatpickr) {
+        start.type = 'text';
+        window.flatpickr(start, {
           enableTime: true,
           time_24hr: true,
           dateFormat: 'Y-m-d\\TH:i',
           altInput: true,
           altFormat: 'd/m/Y H:i',
           minuteIncrement: 15,
-          locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.vn) || 'default',
+          locale: vnLocale,
           allowInput: false,
-          onChange: updateCreatePreview
+          onChange: (selectedDates) => {
+            if (selectedDates[0] && end && end._flatpickr) {
+              const minEnd = new Date(selectedDates[0].getTime() + 86400000);
+              end._flatpickr.set('minDate', minEnd);
+            }
+            updateCreatePreview();
+          }
         });
-      });
+      }
     };
 
     if (window.flatpickr) {
