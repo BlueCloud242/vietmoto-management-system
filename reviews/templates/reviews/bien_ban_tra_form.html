@@ -249,9 +249,14 @@
                                             <label class="form-check-label text-dark fw-medium" for="chk_phanh">Cong tay phanh / gãy gác chân (+150.000đ)</label>
                                         </div>
                                     {% endif %}
-                                    <div class="d-flex align-items-center gap-2 mt-2">
-                                        <span class="text-secondary small fw-medium">Chi phí khác:</span>
-                                        <input type="number" name="khau_tru_khac" id="id_khau_tru_khac" class="form-control form-control-sm text-dark fw-bold font-monospace" placeholder="Nhập thêm..." style="max-width: 140px; border-color: #cbd5e1;">
+                                    <div class="mt-2 pt-2 border-top" style="border-color: #e2e8f0 !important;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-secondary small fw-medium text-nowrap">Chi phí khác:</span>
+                                            <input type="number" name="khau_tru_khac" id="id_khau_tru_khac" class="form-control form-control-sm text-dark fw-bold font-monospace" placeholder="Nhập thêm..." min="0" step="10000" style="max-width: 140px; border-color: #cbd5e1;">
+                                        </div>
+                                        <div id="wrap-ly-do-khac" class="mt-2 d-none">
+                                            <input type="text" name="ly_do_khau_tru_khac" id="id_ly_do_khau_tru_khac" class="form-control form-control-sm text-dark" placeholder="Nhập lý do phát sinh chi phí khác (bắt buộc)..." style="border-color: #fda4af; background-color: #fff1f2;">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -333,6 +338,8 @@ window.initPageScripts = function () {
 
     const inputKhauTruPhuKien = document.getElementById('id_khau_tru_phu_kien');
     const inputKhauTruKhac = document.getElementById('id_khau_tru_khac');
+    const wrapLyDoKhac = document.getElementById('wrap-ly-do-khac');
+    const inputLyDoKhac = document.getElementById('id_ly_do_khau_tru_khac');
     const lblTongPhuKien = document.getElementById('lbl-tong-phu-kien');
 
     const lblTongKhauTru = document.getElementById('lbl-tong-khau-tru');
@@ -419,6 +426,17 @@ window.initPageScripts = function () {
         const tienXang = parseInt(inputKhauTruXang?.value) || 0;
         const tienPhuKien = parseInt(inputKhauTruPhuKien?.value) || 0;
         const tienKhac = parseInt(inputKhauTruKhac?.value) || 0;
+
+        if (wrapLyDoKhac && inputLyDoKhac) {
+            if (tienKhac > 0) {
+                wrapLyDoKhac.classList.remove('d-none');
+                inputLyDoKhac.required = true;
+            } else {
+                wrapLyDoKhac.classList.add('d-none');
+                inputLyDoKhac.required = false;
+                inputLyDoKhac.value = '';
+            }
+        }
 
         const tongKhauTru = phuPhiTre + tienXang + tienPhuKien + tienKhac;
         if (lblTongKhauTru) lblTongKhauTru.innerText = tongKhauTru.toLocaleString('vi-VN');
