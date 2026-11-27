@@ -180,6 +180,20 @@ class HopDongThueCreateForm(forms.ModelForm):
         error_messages={'required': 'Vui lòng nhập đúng số điện thoại khách hàng đã có trong hệ thống.'}
     )
 
+    ngay_ket_thuc_du_kien = forms.DateField(
+        label="Ngày hẹn trả xe (Dự kiến)",
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'class': 'form-control text-dark fw-semibold',
+                'type': 'date',
+                'id': 'id_ngay_ket_thuc_du_kien',
+                'placeholder': 'dd/mm/yyyy'
+            }
+        )
+    )
+
     don_gia_ap_dung = forms.DecimalField(
         label="Đơn giá ngày áp dụng (VNĐ/ngày)",
         required=False,
@@ -242,13 +256,6 @@ class HopDongThueCreateForm(forms.ModelForm):
                     'id': 'id_ngay_bat_dau'
                 }
             ),
-            'ngay_ket_thuc_du_kien': forms.DateTimeInput(
-                attrs={
-                    'class': 'form-control text-dark fw-semibold',
-                    'type': 'datetime-local',
-                    'id': 'id_ngay_ket_thuc_du_kien'
-                }
-            ),
         }
 
     def __init__(self, *args, don_dat=None, **kwargs):
@@ -263,7 +270,7 @@ class HopDongThueCreateForm(forms.ModelForm):
                 self.initial.setdefault('ma_khach_hang', self.don_dat.ma_khach_hang_id)
                 self.initial.setdefault('bien_so_xe', self.don_dat.bien_so_xe_id)
                 self.initial.setdefault('ngay_bat_dau', timezone.localtime(self.don_dat.thoi_gian_hen_nhan).strftime('%Y-%m-%dT%H:%M'))
-                self.initial.setdefault('ngay_ket_thuc_du_kien', timezone.localtime(self.don_dat.thoi_gian_du_kien_tra).strftime('%Y-%m-%dT%H:%M'))
+                self.initial.setdefault('ngay_ket_thuc_du_kien', timezone.localtime(self.don_dat.thoi_gian_du_kien_tra).strftime('%Y-%m-%d'))
                 self.initial.setdefault('don_gia_ap_dung', self.don_dat.bien_so_xe.ma_dong_xe.don_gia_ngay)
                 self.initial.setdefault('tien_coc_quy_dinh', self.don_dat.bien_so_xe.ma_dong_xe.tien_coc_dinh_muc)
 
@@ -276,9 +283,20 @@ class HopDongThueCreateForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         ngay_bd = cleaned_data.get('ngay_bat_dau')
-        ngay_kt = cleaned_data.get('ngay_ket_thuc_du_kien')
+        ngay_kt_date = cleaned_data.get('ngay_ket_thuc_du_kien')
         khach_hang = cleaned_data.get('ma_khach_hang')
         bien_so_xe = cleaned_data.get('bien_so_xe')
+
+        # Ghép giờ nhận xe vào ngày hẹn trả xe để tạo datetime hoàn chỉnh
+        ngay_kt = None
+        if ngay_bd and ngay_kt_date:
+            ngay_bd_local = timezone.localtime(ngay_bd) if timezone.is_aware(ngay_bd) else ngay_bd
+            ngay_kt = ngay_bd_local.replace(
+                year=ngay_kt_date.year,
+                month=ngay_kt_date.month,
+                day=ngay_kt_date.day,
+            )
+            cleaned_data['ngay_ket_thuc_du_kien'] = ngay_kt
 
         if bien_so_xe and ngay_bd and ngay_kt:
             dat_xe_qs = DonDatTruoc.objects.filter(
@@ -314,7 +332,7 @@ class HopDongThueCreateForm(forms.ModelForm):
                 )
 
         if ngay_bd and ngay_kt and ngay_kt <= ngay_bd:
-            raise ValidationError("Thời điểm hẹn trả phải sau thời điểm nhận xe.")
+            raise ValidationError("Ngày hẹn trả xe phải sau ngày nhận xe ít nhất 1 ngày.")
 
         if khach_hang and getattr(khach_hang, 'muc_tin_nhiem', '') == 'BLACKLIST':
             raise ValidationError(
@@ -340,13 +358,25 @@ class HopDongThueCreateForm(forms.ModelForm):
 
 
 class GiaHanHopDongForm(forms.Form):
-    ngay_ket_thuc_moi = forms.DateTimeField(
-        label="Thời điểm kết thúc mới (Giờ & Ngày)",
-        widget=forms.DateTimeInput(attrs={
-            'class': 'form-control text-dark fw-bold',
-            'type': 'datetime-local',
-            'id': 'id_ngay_ket_thuc_moi'
-        })
+    so_ngay_gia_han_nhanh = forms.IntegerField(
+        required=False,
+        min_value=1,
+        widget=forms.HiddenInput(attrs={'id': 'id_so_ngay_gia_han_nhanh'})
+    )
+
+    ngay_ket_thuc_moi = forms.DateField(
+        label="Ngày kết thúc mới",
+        required=False,  # Không bắt buộc cứng ở cấp field vì có thể chọn nhanh
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'class': 'form-control text-dark fw-bold',
+                'type': 'date',
+                'id': 'id_ngay_ket_thuc_moi',
+                'placeholder': 'dd/mm/yyyy'
+            }
+        )
     )
 
     hinh_thuc_thanh_toan = forms.ChoiceField(
@@ -374,13 +404,36 @@ class GiaHanHopDongForm(forms.Form):
         self.hop_dong = hop_dong
         super().__init__(*args, **kwargs)
 
-    def clean_ngay_ket_thuc_moi(self):
-        ngay_moi = self.cleaned_data.get('ngay_ket_thuc_moi')
-        if ngay_moi and ngay_moi <= self.hop_dong.ngay_ket_thuc_du_kien:
-            raise forms.ValidationError(
-                "Thời điểm gia hạn mới phải sau hạn trả dự kiến hiện tại."
+    def clean(self):
+        cleaned_data = super().clean()
+        so_ngay_nhanh = cleaned_data.get('so_ngay_gia_han_nhanh')
+        ngay_moi_date = cleaned_data.get('ngay_ket_thuc_moi')
+        han_tra_cu = self.hop_dong.ngay_ket_thuc_du_kien
+
+        if so_ngay_nhanh:
+            # Nếu đã chọn nhanh -> tự động tính ngay_ket_thuc_moi từ hạn trả hiện tại
+            cleaned_data['ngay_ket_thuc_moi'] = han_tra_cu + timedelta(days=so_ngay_nhanh)
+        elif ngay_moi_date:
+            # Ghép giờ trả cũ vào ngày kết thúc mới
+            han_tra_cu_local = timezone.localtime(han_tra_cu) if timezone.is_aware(han_tra_cu) else han_tra_cu
+            ngay_moi = han_tra_cu_local.replace(
+                year=ngay_moi_date.year,
+                month=ngay_moi_date.month,
+                day=ngay_moi_date.day,
             )
-        return ngay_moi
+            if ngay_moi <= han_tra_cu:
+                self.add_error(
+                    'ngay_ket_thuc_moi',
+                    "Ngày gia hạn mới phải sau hạn trả dự kiến hiện tại."
+                )
+            cleaned_data['ngay_ket_thuc_moi'] = ngay_moi
+        else:
+            self.add_error(
+                'ngay_ket_thuc_moi',
+                "Vui lòng chọn số ngày gia hạn nhanh hoặc chọn ngày kết thúc mới."
+            )
+
+        return cleaned_data
 
 
 # ==============================================================================
@@ -605,6 +658,20 @@ class DonDatTruocForm(forms.ModelForm):
         })
     )
 
+    thoi_gian_du_kien_tra = forms.DateField(
+        label="Ngày dự kiến trả xe",
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'class': 'form-control text-dark fw-semibold',
+                'type': 'date',
+                'id': 'id_thoi_gian_du_kien_tra',
+                'placeholder': 'dd/mm/yyyy'
+            }
+        )
+    )
+
     class Meta:
         model = DonDatTruoc
         fields = [
@@ -619,10 +686,6 @@ class DonDatTruocForm(forms.ModelForm):
             'thoi_gian_hen_nhan': forms.DateTimeInput(
                 format='%Y-%m-%dT%H:%M',
                 attrs={'class': 'form-control text-dark fw-semibold', 'type': 'datetime-local', 'id': 'id_thoi_gian_hen_nhan'}
-            ),
-            'thoi_gian_du_kien_tra': forms.DateTimeInput(
-                format='%Y-%m-%dT%H:%M',
-                attrs={'class': 'form-control text-dark fw-semibold', 'type': 'datetime-local', 'id': 'id_thoi_gian_du_kien_tra'}
             ),
             'tien_coc_giu_cho': forms.NumberInput(attrs={
                 'class': 'form-control bg-light text-success fw-bold font-monospace',
@@ -667,7 +730,18 @@ class DonDatTruocForm(forms.ModelForm):
         khach_hang = cleaned_data.get('ma_khach_hang')
         xe = cleaned_data.get('bien_so_xe')
         hen_nhan = cleaned_data.get('thoi_gian_hen_nhan')
-        du_kien_tra = cleaned_data.get('thoi_gian_du_kien_tra')
+        du_kien_tra_date = cleaned_data.get('thoi_gian_du_kien_tra')
+
+        # Ghép giờ hẹn nhận xe vào ngày dự kiến trả xe
+        du_kien_tra = None
+        if hen_nhan and du_kien_tra_date:
+            hen_nhan_local = timezone.localtime(hen_nhan) if timezone.is_aware(hen_nhan) else hen_nhan
+            du_kien_tra = hen_nhan_local.replace(
+                year=du_kien_tra_date.year,
+                month=du_kien_tra_date.month,
+                day=du_kien_tra_date.day,
+            )
+            cleaned_data['thoi_gian_du_kien_tra'] = du_kien_tra
 
         # Ép cứng cọc 100k, đã nộp cọc & trạng thái Đã giữ chỗ
         cleaned_data['tien_coc_giu_cho'] = self.FIXED_BOOKING_DEPOSIT
@@ -686,7 +760,7 @@ class DonDatTruocForm(forms.ModelForm):
 
         if hen_nhan and du_kien_tra:
             if du_kien_tra <= hen_nhan:
-                self.add_error('thoi_gian_du_kien_tra', "Thời gian trả xe dự kiến phải sau thời gian hẹn nhận xe.")
+                self.add_error('thoi_gian_du_kien_tra', "Ngày trả xe dự kiến phải sau ngày hẹn nhận xe ít nhất 1 ngày.")
             elif hen_nhan < timezone.now() - timedelta(minutes=15):
                 self.add_error('thoi_gian_hen_nhan', "Thời gian hẹn nhận xe không được nằm trong quá khứ.")
 
