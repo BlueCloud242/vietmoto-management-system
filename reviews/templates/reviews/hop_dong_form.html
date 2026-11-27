@@ -2,6 +2,7 @@
 {% block title %}Lập Hợp Đồng Thuê Xe | Vietmoto{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
 .contract-customer-wrap { position: relative; }
 .contract-customer-results {
@@ -145,19 +146,22 @@
             {{ form.tien_coc_quy_dinh }}
           </div>
 
-          <!-- HÀNG 4: Thời điểm nhận xe (6) | Thời điểm hẹn trả xe (6) -->
+          <!-- HÀNG 4: Thời điểm nhận xe (6) | Ngày hẹn trả xe (6) -->
           <div class="col-md-6">
             <label class="form-label fw-bold text-dark small">
-              Thời điểm nhận xe (Bắt đầu) <span class="text-danger">*</span>
+              Thời điểm nhận xe (Ngày &amp; Giờ) <span class="text-danger">*</span>
             </label>
             {{ form.ngay_bat_dau }}
           </div>
 
           <div class="col-md-6">
             <label class="form-label fw-bold text-dark small">
-              Thời điểm hẹn trả xe (Dự kiến) <span class="text-danger">*</span>
+              Ngày hẹn trả xe (Dự kiến) <span class="text-danger">*</span>
             </label>
             {{ form.ngay_ket_thuc_du_kien }}
+            <small id="lbl-hd-return-time-hint" class="text-success d-block mt-1 fw-semibold" style="font-size: 0.78rem;">
+              Giờ trả xe quy định: <span class="font-monospace" id="lbl-hd-exact-return">Theo giờ nhận xe</span>
+            </small>
           </div>
 
           <!-- HÀNG 5: Hình thức thanh toán (5) | Ghi chú giao xe (7) -->
@@ -479,10 +483,36 @@
       });
     }
 
+    // Ghép giờ từ start vào ngày của end (YYYY-MM-DD) để tính đủ ngày tròn 24h
+    function getFullEndDateTime() {
+      if (!start || !start.value || !end || !end.value) return null;
+      const a = new Date(start.value);
+      if (!Number.isFinite(a.getTime())) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(end.value)) {
+        const [y, m, d] = end.value.split('-').map(Number);
+        return new Date(y, m - 1, d, a.getHours(), a.getMinutes(), 0);
+      }
+      return new Date(end.value);
+    }
+
     function updateContractPreview() {
       const a = start && start.value ? new Date(start.value) : null;
-      const b = end && end.value ? new Date(end.value) : null;
+      const b = getFullEndDateTime();
       const validRange = a && b && Number.isFinite(a.getTime()) && Number.isFinite(b.getTime()) && b > a;
+
+      const exactReturnEl = document.getElementById('lbl-hd-exact-return');
+      if (exactReturnEl) {
+        if (validRange) {
+          const hh = String(b.getHours()).padStart(2, '0');
+          const min = String(b.getMinutes()).padStart(2, '0');
+          const dd = String(b.getDate()).padStart(2, '0');
+          const mm = String(b.getMonth() + 1).padStart(2, '0');
+          exactReturnEl.textContent = `${hh}:${min} - ${dd}/${mm}/${b.getFullYear()}`;
+        } else {
+          exactReturnEl.textContent = 'Theo giờ nhận xe';
+        }
+      }
 
       // Kiểm tra trùng lịch trên danh sách xe (hiển thị Biển số · Tên dòng xe)
       if (vehicle) {
@@ -564,7 +594,7 @@
 
       let days = 0;
       if (validRange) {
-        days = Math.max(1, Math.ceil((b - a) / 86400000));
+        days = Math.max(1, Math.round((b - a) / 86400000));
       }
       document.getElementById('lbl-hd-so-ngay').textContent = days;
 
@@ -583,6 +613,64 @@
     if (depositMethod) depositMethod.addEventListener('change', updateContractPreview);
     if (start) start.addEventListener('change', updateContractPreview);
     if (end) end.addEventListener('change', updateContractPreview);
+
+    const setupContractFlatpickr = () => {
+      if (!window.flatpickr) return;
+      const vnLocale = (window.flatpickr.l10ns && window.flatpickr.l10ns.vn) || 'default';
+
+      if (end && !end._flatpickr) {
+        // Chuyển định dạng ngày về YYYY-MM-DD nếu đang có sẵn phần giờ (từ đơn đặt trước)
+        if (end.value && end.value.includes('T')) {
+          end.value = end.value.split('T')[0];
+        }
+        end.type = 'text';
+        window.flatpickr(end, {
+          enableTime: false,
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd/m/Y',
+          locale: vnLocale,
+          allowInput: false,
+          onChange: updateContractPreview
+        });
+      }
+
+      if (start && !start._flatpickr) {
+        start.type = 'text';
+        window.flatpickr(start, {
+          enableTime: true,
+          time_24hr: true,
+          dateFormat: 'Y-m-d\\TH:i',
+          altInput: true,
+          altFormat: 'd/m/Y H:i',
+          minuteIncrement: 15,
+          locale: vnLocale,
+          allowInput: false,
+          onChange: (selectedDates) => {
+            if (selectedDates[0] && end && end._flatpickr) {
+              const minEnd = new Date(selectedDates[0].getTime() + 86400000);
+              end._flatpickr.set('minDate', minEnd);
+            }
+            updateContractPreview();
+          }
+        });
+      }
+    };
+
+    if (window.flatpickr) {
+      setupContractFlatpickr();
+    } else {
+      const fpScript = document.createElement('script');
+      fpScript.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+      fpScript.onload = () => {
+        const vnScript = document.createElement('script');
+        vnScript.src = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js';
+        vnScript.onload = setupContractFlatpickr;
+        vnScript.onerror = setupContractFlatpickr;
+        document.head.appendChild(vnScript);
+      };
+      document.head.appendChild(fpScript);
+    }
 
     const preselected = customerData.find(c => c.ma_khach_hang === hidden.value);
     if (preselected) {
